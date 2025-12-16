@@ -1,14 +1,237 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// ============================================
+// ASCENT LEDGER - PRISMA SCHEMA
+// ============================================
+// Phase 2.2: Database Schema (Complete)
+// Last Updated: December 15, 2025
+// Updated for Prisma 7: December 16, 2025
+// ============================================
 
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
+  extensions = [vector]
+  // NOTE: In Prisma 7, connection URLs are in prisma.config.ts
+}
+
+// ============================================
+// TABLE 1: USERS
+// ============================================
+model User {
+  id        String   @id @db.Uuid
+  email     String   @unique
+  fullName  String?  @map("full_name")
+
+  // Token Economy
+  tokenBalance       Int      @default(100) @map("token_balance")
+  totalTokensEarned  Int      @default(100) @map("total_tokens_earned")
+
+  // Streak System
+  currentStreak      Int      @default(0) @map("current_streak")
+  longestStreak      Int      @default(0) @map("longest_streak")
+  lifeLines          Int      @default(0) @map("life_lines")
+  lastLogDate        DateTime? @map("last_log_date") @db.Date
+
+  // Operating Mode
+  operatingMode      String   @default("ASCENT") @map("operating_mode")
+  recoveryStartDate  DateTime? @map("recovery_start_date")
+
+  // Metadata
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  visionCanvases   VisionCanvas[]
+  strategicLogs    StrategicLog[]
+  fogChecks        FogCheck[]
+  crisisProtocols  CrisisProtocol[]
+  tokenHistory     TokenTransaction[]
+  recoveryCheckins RecoveryCheckin[]
+
+  @@map("users")
+}
+
+// ============================================
+// TABLE 2: VISION_CANVASES
+// ============================================
+model VisionCanvas {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  // The 6 Questions
+  currentState       String @map("current_state") @db.Text
+  desiredState       String @map("desired_state") @db.Text
+  successDefinition  String @map("success_definition") @db.Text
+  uniqueSkills       String @map("unique_skills") @db.Text
+  purposeStatement   String @map("purpose_statement") @db.Text
+  antiGoal           String @map("anti_goal") @db.Text
+
+  // AI-Generated Output
+  aiSynthesis String? @map("ai_synthesis") @db.Text
+
+  // Version Control
+  version  Int     @default(1)
+  isActive Boolean @default(true) @map("is_active")
+
+  // Metadata
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@map("vision_canvases")
+}
+
+// ============================================
+// TABLE 3: STRATEGIC_LOGS
+// ============================================
+model StrategicLog {
+  id     String   @id @default(uuid()) @db.Uuid
+  userId String   @map("user_id") @db.Uuid
+  weekOf DateTime @map("week_of") @db.Date
+
+  // The 3 Questions
+  leverageBuilt         String @map("leverage_built") @db.Text
+  learnedInsight        String @map("learned_insight") @db.Text
+  opportunitiesCreated  String @map("opportunities_created") @db.Text
+
+  // Smart Defaults
+  isSurvivalMode Boolean @default(false) @map("is_survival_mode")
+  hadNoLeverage  Boolean @default(false) @map("had_no_leverage")
+
+  // Vector Embedding (stored as JSON string, queried via raw SQL)
+  embedding String? @db.Text
+
+  // Metadata
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fogChecks FogCheck[]
+
+  @@index([userId, weekOf(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("strategic_logs")
+}
+
+// ============================================
+// TABLE 4: FOG_CHECKS
+// ============================================
+model FogCheck {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  logId  String? @map("log_id") @db.Uuid
+
+  // AI Output (Reddington Voice)
+  observation        String @map("observation") @db.Text
+  strategicQuestion  String @map("strategic_question") @db.Text
+
+  // User Response
+  userReflection String? @map("user_reflection") @db.Text
+
+  // Metadata
+  fogCheckType String @default("WEEKLY") @map("fog_check_type")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  log  StrategicLog? @relation(fields: [logId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([logId])
+  @@map("fog_checks")
+}
+
+// ============================================
+// TABLE 5: CRISIS_PROTOCOLS
+// ============================================
+model CrisisProtocol {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  // Crisis Type
+  crisisType String @map("crisis_type")
+
+  // The 3 Steps
+  burdenToCut   String @map("burden_to_cut") @db.Text
+  oxygenSource  String @map("oxygen_source") @db.Text
+
+  // Status Tracking
+  isBurdenCut        Boolean @default(false) @map("is_burden_cut")
+  isOxygenScheduled  Boolean @default(false) @map("is_oxygen_scheduled")
+
+  // Oxygen Level Tracking
+  oxygenLevelStart   Int? @map("oxygen_level_start")
+  oxygenLevelCurrent Int? @map("oxygen_level_current")
+
+  // Metadata
+  createdAt   DateTime  @default(now()) @map("created_at")
+  completedAt DateTime? @map("completed_at")
+
+  // Relations
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recoveryCheckins RecoveryCheckin[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("crisis_protocols")
+}
+
+// ============================================
+// TABLE 6: TOKEN_TRANSACTIONS
+// ============================================
+model TokenTransaction {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  // Transaction Details
+  amount          Int    @map("amount")
+  transactionType String @map("transaction_type")
+  description     String?
+  relatedEntityId String? @map("related_entity_id") @db.Uuid
+
+  // Balance After Transaction
+  balanceAfter Int @map("balance_after")
+
+  // Metadata
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("token_transactions")
+}
+
+// ============================================
+// TABLE 7: RECOVERY_CHECKINS
+// ============================================
+model RecoveryCheckin {
+  id         String @id @default(uuid()) @db.Uuid
+  userId     String @map("user_id") @db.Uuid
+  protocolId String @map("protocol_id") @db.Uuid
+  weekOf     DateTime @map("week_of") @db.Date
+
+  // The 3 Recovery Questions
+  protocolCompleted   Boolean? @map("protocol_completed")
+  oxygenConnected     Boolean? @map("oxygen_connected")
+  oxygenLevelCurrent  Int?     @map("oxygen_level_current")
+
+  // Additional Notes
+  notes String? @db.Text
+
+  // Metadata
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  protocol CrisisProtocol  @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+
+  @@index([userId, weekOf(sort: Desc)])
+  @@index([protocolId])
+  @@map("recovery_checkins")
 }
