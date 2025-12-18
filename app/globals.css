@@ -1,125 +1,235 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/* ============================================
+   ASCENT LEDGER DESIGN SYSTEM
+   Aesthetic: Night Flight / Cockpit at 30,000ft
+   ============================================ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
-}
+@theme {
+  /* THE PALETTE - "Night Flight Only" */
+  --color-ascent-black: #0A0A0F;      /* Deep Space (Hero, Footer, Trinity) */
+  --color-ascent-obsidian: #13131A;   /* Obsidian (Fog Section, Cards) */
+  --color-ascent-card: #1C1C26;       /* Card Backgrounds (elevated) */
+  
+  --color-ascent-blue: #3B82F6;       /* Electric Blue (Primary CTA, Clarity) */
+  --color-ascent-purple: #8B5CF6;     /* Insight Purple (Vision, Fog Checks) */
+  --color-ascent-green: #10B981;      /* Emerald (Success, Growth, Checkpoints) */
+  --color-ascent-amber: #F59E0B;      /* Amber (Caution, Recovery Mode) */
+  --color-ascent-red: #EF4444;        /* Red (Crisis, "0 Clarity" warning) */
+  
+  --color-ascent-white: #FFFFFF;      /* Pure White (Primary Text) */
+  --color-ascent-gray: #9CA3AF;       /* Gray (Secondary Text, Muted) */
 
-:root {
-  --radius: 0.625rem;
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.21 0.006 285.885);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.21 0.006 285.885);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.705 0.015 286.067);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-}
+  /* RADIUS - Consistent rounded corners */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
 
-.dark {
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.92 0.004 286.32);
-  --primary-foreground: oklch(0.21 0.006 285.885);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.552 0.016 285.938);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.552 0.016 285.938);
-}
+  /* SHADOWS - Subtle depth for glassmorphism */
+  --shadow-glow-blue: 0 0 24px rgba(59, 130, 246, 0.3);
+  --shadow-glow-purple: 0 0 24px rgba(139, 92, 246, 0.3);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
+  /* ANIMATIONS - Custom keyframes */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-shimmer: shimmer 2s linear infinite;
+  --animate-radar: radar 4s linear infinite;
+  --animate-pulse-slow: pulse-slow 3s ease-in-out infinite;
+  --animate-float: float 3s ease-in-out infinite;
+
+  /* Keyframes Definitions */
+  @keyframes accordion-down {
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height); }
   }
+  
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height); }
+    to { height: 0; }
+  }
+  
+  @keyframes shimmer {
+    from { background-position: 0 0; }
+    to { background-position: -200% 0; }
+  }
+  
+  @keyframes radar {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  @keyframes pulse-slow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+}
+
+/* ============================================
+   GLOBAL BASE STYLES
+   Enforcing "Cockpit" aesthetic everywhere
+   ============================================ */
+@layer base {
+  /* Root CSS Variables (for shadcn/ui compatibility) */
+  :root {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 221 83% 53%;
+  }
+
+  /* Smooth Scrolling */
+  html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+  }
+
+  /* Default Body Styling - Deep Space Black */
   body {
-    @apply bg-background text-foreground;
+    @apply bg-ascent-black text-ascent-white antialiased;
+    font-family: var(--font-inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* Headings */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold text-ascent-white;
+    letter-spacing: -0.02em;
+  }
+
+  /* Links */
+  a {
+    @apply text-ascent-blue hover:text-ascent-purple transition-colors duration-300;
+  }
+
+  /* Custom Scrollbar (Chrome/Safari/Edge) */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-ascent-obsidian;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-ascent-card rounded-full;
+    border: 1px solid var(--color-ascent-obsidian);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-ascent-gray;
+  }
+
+  /* Firefox Scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-ascent-card) var(--color-ascent-obsidian);
+  }
+
+  /* Selection Styling */
+  ::selection {
+    @apply bg-ascent-blue text-ascent-white;
+  }
+
+  ::-moz-selection {
+    @apply bg-ascent-blue text-ascent-white;
+  }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   Reusable patterns for glassmorphism, effects
+   ============================================ */
+@layer utilities {
+  /* Glassmorphism Panel */
+  .glass-panel {
+    @apply bg-ascent-card/60 backdrop-blur-xl border border-white/10;
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Glassmorphism (lighter - for floating navbar) */
+  .glass-light {
+    @apply bg-ascent-blue/10 backdrop-blur-lg border border-white/5;
+  }
+
+  /* Text Gradient (Blue to Purple) */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, var(--color-ascent-blue), var(--color-ascent-purple));
+  }
+
+  /* Glow Effects */
+  .glow-blue {
+    box-shadow: var(--shadow-glow-blue);
+  }
+
+  .glow-purple {
+    box-shadow: var(--shadow-glow-purple);
+  }
+
+  /* Hide Scrollbar (for Mobile Carousel) */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* GPU Acceleration Hint */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform, opacity;
+  }
+
+  /* Smooth Transitions */
+  .transition-smooth {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Container with Max Width */
+  .container-narrow {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+}
+
+/* ============================================
+   COMPONENT OVERRIDES
+   Specific tweaks for shadcn/ui, Aceternity
+   ============================================ */
+@layer components {
+  /* Button Base (will be extended in Button.tsx) */
+  .btn-base {
+    @apply px-6 py-3 rounded-lg font-semibold transition-all duration-300;
+    @apply focus:outline-none focus:ring-2 focus:ring-ascent-blue focus:ring-offset-2 focus:ring-offset-ascent-black;
+  }
+
+  /* Card Base */
+  .card-base {
+    @apply bg-ascent-card/80 backdrop-blur-lg rounded-xl border border-white/10;
+    @apply transition-all duration-300 hover:border-white/20;
   }
 }

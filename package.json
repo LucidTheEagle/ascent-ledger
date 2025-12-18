@@ -25,6 +25,7 @@
     "framer-motion": "^12.23.26",
     "groq-sdk": "^0.37.0",
     "lucide-react": "^0.560.0",
+    "mini-svg-data-uri": "^1.4.4",
     "next": "16.0.10",
     "openai": "^6.10.0",
     "posthog-js": "^1.306.1",
