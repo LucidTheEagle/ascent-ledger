@@ -10,12 +10,11 @@
 export const COPY = {
     hero: {
       h1: {
-        words: ["STOP", "MISTAKING", "MOTION", "FOR", "PROGRESS"],
-        // Timing for text flip (in seconds)
-        timings: [0.5, 0.6, 0.5, 0.3, 0.7],
+        staticText: "STOP MISTAKING MOTION FOR",
+        flipWords: ["PROGRESS", "GROWTH", "MOMENTUM", "ASCENT"],
       },
       subheading: "You are working hard. But are you ascending?",
-      highlightWord: "ascending", // Word to highlight in subheading
+      highlightWord: "ascending",
       cta: {
         primary: "ENTER THE COCKPIT",
         secondary: "READ THE MANIFESTO",
