@@ -1,0 +1,21 @@
+# public/robots.txt
+User-agent: *
+Allow: /
+Allow: /manifesto
+Allow: /login
+Disallow: /api/
+Disallow: /admin/
+Disallow: /dashboard/
+
+Sitemap: https://ascentledger.com/sitemap.xml
+
+# Crawl delay for search engines (seconds)
+Crawl-delay: 1
+
+# Ads bots
+User-agent: AdsBot-Google
+Allow: /
+
+# Image bots
+User-agent: Googlebot-Image
+Allow: /
