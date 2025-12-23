@@ -6,6 +6,7 @@
 import { Navbar } from "@/components/landing/navigation/Navbar";
 import { FloatingNavbar } from "@/components/landing/navigation/FloatingNavbar";
 import { Hero } from "@/components/landing/sections/Hero";
+import { Fog } from "@/components/landing/sections/Fog";
 
 export default function HomePage() {
   return (
@@ -16,6 +17,7 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <Hero />
+      <Fog />
 
       {/* SPACER SECTION - For Testing Scroll */}
       <section className="min-h-screen w-full flex items-center justify-center bg-ascent-obsidian">
