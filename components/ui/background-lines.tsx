@@ -1,7 +1,8 @@
 "use client";
+
 import { cn } from "@/lib/utils";
-import { motion } from "motion/react";
-import React from "react";
+import { motion } from "framer-motion";
+import React, { useRef } from "react";
 
 export const BackgroundLines = ({
   children,
@@ -17,7 +18,7 @@ export const BackgroundLines = ({
   return (
     <div
       className={cn(
-        "h-[20rem] md:h-screen w-full bg-white dark:bg-black",
+        "h-80 md:h-screen w-full bg-white dark:bg-black",
         className
       )}
     >
@@ -90,6 +91,16 @@ const SVG = ({
     "#6A286F",
     "#604483",
   ];
+
+  const timingRef = useRef<
+    { delay: number; repeatDelay: number }[]
+  >(
+    paths.map(() => ({
+      delay: Math.floor(Math.random() * 10),
+      repeatDelay: Math.floor(Math.random() * 10 + 2),
+    }))
+  );
+
   return (
     <motion.svg
       viewBox="0 0 1440 900"
@@ -100,48 +111,56 @@ const SVG = ({
       transition={{ duration: 1 }}
       className="absolute inset-0 w-full h-full"
     >
-      {paths.map((path, idx) => (
-        <motion.path
-          d={path}
-          stroke={colors[idx]}
-          strokeWidth="2.3"
-          strokeLinecap="round"
-          variants={pathVariants}
-          initial="initial"
-          animate="animate"
-          transition={{
-            duration: svgOptions?.duration || 10,
-            ease: "linear",
-            repeat: Infinity,
-            repeatType: "loop",
-            delay: Math.floor(Math.random() * 10),
-            repeatDelay: Math.floor(Math.random() * 10 + 2),
-          }}
-          key={`path-first-${idx}`}
-        />
-      ))}
+      {paths.map((path, idx) => {
+        const timing = timingRef.current[idx];
 
-      {/* duplicate for more paths */}
-      {paths.map((path, idx) => (
-        <motion.path
-          d={path}
-          stroke={colors[idx]}
-          strokeWidth="2.3"
-          strokeLinecap="round"
-          variants={pathVariants}
-          initial="initial"
-          animate="animate"
-          transition={{
-            duration: svgOptions?.duration || 10,
-            ease: "linear",
-            repeat: Infinity,
-            repeatType: "loop",
-            delay: Math.floor(Math.random() * 10),
-            repeatDelay: Math.floor(Math.random() * 10 + 2),
-          }}
-          key={`path-second-${idx}`}
-        />
-      ))}
+        return (
+          <motion.path
+            key={`path-first-${idx}`}
+            d={path}
+            stroke={colors[idx]}
+            strokeWidth="2.3"
+            strokeLinecap="round"
+            variants={pathVariants}
+            initial="initial"
+            animate="animate"
+            transition={{
+              duration: svgOptions?.duration || 10,
+              ease: "linear",
+              repeat: Infinity,
+              repeatType: "loop",
+              delay: timing.delay,
+              repeatDelay: timing.repeatDelay,
+            }}
+          />
+        );
+      })}
+
+      {/* duplicate layer */}
+      {paths.map((path, idx) => {
+        const timing = timingRef.current[idx];
+
+        return (
+          <motion.path
+            key={`path-second-${idx}`}
+            d={path}
+            stroke={colors[idx]}
+            strokeWidth="2.3"
+            strokeLinecap="round"
+            variants={pathVariants}
+            initial="initial"
+            animate="animate"
+            transition={{
+              duration: svgOptions?.duration || 10,
+              ease: "linear",
+              repeat: Infinity,
+              repeatType: "loop",
+              delay: timing.delay,
+              repeatDelay: timing.repeatDelay,
+            }}
+          />
+        );
+      })}
     </motion.svg>
   );
 };
