@@ -1,44 +1,26 @@
-/**
- * ASCENT LEDGER - HOMEPAGE
- * The Gateway: External face that filters tourists, attracts pilots
- */
-
 import { Navbar } from "@/components/landing/navigation/Navbar";
 import { FloatingNavbar } from "@/components/landing/navigation/FloatingNavbar";
 import { Hero } from "@/components/landing/sections/Hero";
 import { Fog } from "@/components/landing/sections/Fog";
+import { Trinity } from "@/components/landing/sections/Trinity";  // ← ADD THIS
 
 export default function HomePage() {
   return (
     <main className="relative min-h-screen overflow-x-hidden">
-      {/* NAVIGATION LAYER */}
       <Navbar />
       <FloatingNavbar />
-
-      {/* Hero Section */}
       <Hero />
       <Fog />
+      <Trinity />  {/* ← ADD THIS */}
 
-      {/* SPACER SECTION - For Testing Scroll */}
+      {/* SPACER */}
       <section className="min-h-screen w-full flex items-center justify-center bg-ascent-obsidian">
         <div className="text-center space-y-4">
           <h2 className="text-3xl font-bold text-white">
-            Phase 3A: Navigation Testing
+            Phase 5: Trinity Complete ✅
           </h2>
           <p className="text-ascent-gray">
-            Keep scrolling to test the floating navbar behavior
-          </p>
-        </div>
-      </section>
-
-      {/* ANOTHER SPACER */}
-      <section className="min-h-screen w-full flex items-center justify-center bg-ascent-black">
-        <div className="text-center space-y-4">
-          <h2 className="text-3xl font-bold text-white">
-            Scroll back up now
-          </h2>
-          <p className="text-ascent-gray">
-            The floating navbar should appear when you scroll up
+            Next: Phase 6 (Social Proof)
           </p>
         </div>
       </section>
