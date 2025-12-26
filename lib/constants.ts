@@ -95,7 +95,7 @@ export const COPY = {
         { label: "GitHub", href: "https://github.com/lucidtheeagle/ascent-ledger" },
         { label: "Login", href: "/login" },
       ],
-      copyright: "© 2025 Ascent Ledger",
+      copyright: "Ascent Ledger",
     },
   
     nav: {
