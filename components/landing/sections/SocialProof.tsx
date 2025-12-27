@@ -25,7 +25,7 @@ export function SocialProof() {
   ];
 
   return (
-    <section className="relative min-h-[90vh] w-full flex items-center justify-center overflow-hidden py-20 bg-ascent-black">
+    <section className="relative min-h-screen w-full flex items-center justify-center overflow-hidden py-16 md:py-20 bg-ascent-black">
       
       {/* LAYER 1: DEPTH BACKGROUND */}
       <div className="absolute inset-0 z-0 opacity-40">
@@ -38,31 +38,30 @@ export function SocialProof() {
       </div>
 
       {/* CONTENT CONTAINER */}
-      <div className="relative z-10 max-w-7xl mx-auto px-6 w-full flex flex-col items-center">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 w-full flex flex-col items-center">
         
         {/* HEADER SECTION */}
-        <div className="relative w-full flex flex-col items-center mb-12">
+        <div className="relative w-full flex flex-col items-center mb-8 md:mb-12">
           
           {/* H2 - TEXT HOVER EFFECT */}
           <motion.div 
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             transition={{ duration: 1 }}
-            // FIXED: Valid Tailwind height classes
-            className="h-16 md:h-32 w-full flex items-center justify-center relative z-20"
+            className="h-20 md:h-32 w-full flex items-center justify-center relative z-20"
           >
              <TextHoverEffect text={COPY.socialProof.h2} />
           </motion.div>
 
           {/* SUBHEADING - TYPEWRITER */}
-          <div className="relative z-20 -mt-4 md:-mt-8 flex flex-col items-center gap-4">
-            <p className="text-lg md:text-2xl text-ascent-gray font-light text-center">
+          <div className="relative z-20 -mt-2 md:-mt-8 flex flex-col items-center gap-3 md:gap-4">
+            <p className="text-base md:text-xl lg:text-2xl text-ascent-gray font-light text-center px-4">
               {COPY.socialProof.subheading.line1}
             </p>
 
             <TypewriterEffectSmooth 
               words={subheadingWords} 
-              className="text-2xl md:text-4xl font-bold"
+              className="text-xl md:text-3xl lg:text-4xl font-bold"
               cursorClassName="bg-ascent-amber"
             />
           </div>
@@ -74,49 +73,49 @@ export function SocialProof() {
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={viewportConfig}
           transition={{ delay: 0.5, duration: 0.8 }}
-          className="w-full max-w-4xl mb-16"
+          className="w-full max-w-6xl mb-12 md:mb-16 px-2"
         >
-          <div className="relative overflow-hidden rounded-xl border border-white/10 bg-ascent-obsidian/50 backdrop-blur-md">
+          <div className="relative overflow-hidden rounded-lg md:rounded-xl border border-white/10 bg-ascent-obsidian/50 backdrop-blur-md">
             {/* Top glowing line */}
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             
-            {/* ADJUSTED: Speed to "slow" as per master doc (50px/s desktop, 40px/s mobile) */}
+            {/* TERMINAL TICKER */}
             <TerminalTicker
               items={COPY.socialProof.ticker}
               speed="slow"
               direction="left"
               pauseOnHover={true}
-              className="py-6"
+              className="py-4 md:py-6"
             />
             
             {/* Gradient fade masks */}
-            <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-ascent-black/80 to-transparent pointer-events-none" />
-            <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-ascent-black/80 to-transparent pointer-events-none" />
+            <div className="absolute inset-y-0 left-0 w-12 md:w-20 bg-gradient-to-r from-ascent-black/80 to-transparent pointer-events-none" />
+            <div className="absolute inset-y-0 right-0 w-12 md:w-20 bg-gradient-to-l from-ascent-black/80 to-transparent pointer-events-none" />
           </div>
         </motion.div>
 
-        {/* CTA BUTTON WITH SHAKE HOVER */}
+        {/* CTA BUTTON - FULLY RESPONSIVE */}
         <motion.div
           initial="initial"
           whileInView="animate"
           viewport={viewportConfig}
           variants={fadeInVariants}
           transition={{ delay: 1.2 }}
-          // ADDED: Shake animation on hover
           whileHover={{
             x: [0, -2, 2, -2, 0],
           }}
-          style={{ display: "inline-block" }}
+          className="w-full max-w-md px-4"
         >
           <MovingButton
             borderRadius="1.75rem"
             duration={3500}
-            containerClassName="h-14 w-60 md:w-72" 
-            className="bg-transparent text-white font-semibold text-lg shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] transition-shadow duration-300"
+            // RESPONSIVE CONTAINER: Mobile gets more height, desktop stays compact
+            containerClassName="h-14 md:h-16 w-full" 
+            className="bg-transparent text-white font-semibold text-base md:text-lg shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] transition-shadow duration-300"
           >
-            <span className="flex items-center gap-2">
-              {COPY.socialProof.cta}
-              <ArrowRight className="w-4 h-4" />
+            <span className="flex items-center justify-center gap-2 w-full px-4">
+              <span className="truncate">{COPY.socialProof.cta}</span>
+              <ArrowRight className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
             </span>
           </MovingButton>
         </motion.div>

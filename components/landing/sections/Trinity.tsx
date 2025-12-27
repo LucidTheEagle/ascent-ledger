@@ -7,6 +7,7 @@ import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { Illustration } from "@/components/ui/glowing-stars";
 import { CardPattern } from "@/components/ui/evervault-card";
 import { useMotionValue } from "framer-motion";
+import { TrinityCarousel } from "@/components/ui/trinity-carousel";
 import { COPY } from "@/lib/constants";
 import { 
   fadeInVariants, 
@@ -78,7 +79,7 @@ const EvervaultBackground = () => {
   const mouseY = useMotionValue(0);
 
   const randomString = useMemo(() => {
-    const characters = "01010101 ASCENT CLARITY FOCUS 010101"; // Customized string for matrix feel
+    const characters = "01010101 ASCENT CLARITY FOCUS 010101";
     let result = "";
     for (let i = 0; i < 1500; i++) {
       result += characters.charAt(Math.floor(Math.random() * characters.length));
@@ -139,6 +140,74 @@ export function Trinity() {
     return () => { clearTimeout(p1); clearTimeout(p2); };
   }, []);
 
+  // Define cards for mobile carousel (separate from desktop render)
+  const carouselCards = [
+    {
+      id: "vision",
+      content: (
+        <CardSpotlight className="h-[500px] border border-white/10 bg-ascent-obsidian/60">
+          <div className="relative z-20 flex flex-col h-full p-6">
+            <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
+              <div className="flex items-center gap-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-ascent-blue animate-pulse shadow-[0_0_8px_#3B82F6]" />
+                <span className="text-sm font-mono text-ascent-blue uppercase tracking-widest">Vision Canvas</span>
+              </div>
+            </div>
+            <div className="flex-1 flex flex-col justify-center w-full">
+              <ChatBubble role="system" delay={0.2} text="Where are you in your career right now?" />
+              <ChatBubble role="user" delay={0.4} text="I'm 3 years into account management. Hitting quota, but I feel like a cog in the machine." />
+              <ChatBubble role="system" delay={0.6} text="Acknowledged. What is the target coordinate?" />
+              <ChatBubble role="user" delay={0.8} text="Leading a sales team at a Series B startup." />
+            </div>
+          </div>
+        </CardSpotlight>
+      ),
+    },
+    {
+      id: "log",
+      content: (
+        <div className="relative h-[500px] w-full rounded-2xl overflow-hidden border border-white/10 bg-ascent-obsidian/80 backdrop-blur-md">
+          <div className="absolute inset-0 z-0 opacity-40"><Illustration mouseEnter={false} /></div>
+          <div className="relative z-10 p-6 flex flex-col h-full">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-ascent-green shadow-[0_0_8px_#10B981]" />
+                <span className="text-xs font-mono text-ascent-green uppercase">System Log</span>
+              </div>
+            </div>
+            <div className="space-y-3 flex-1 overflow-hidden">
+              {logs.map((log, i) => (
+                <div key={i} className="flex items-center gap-3 text-sm">
+                  <span className={cn("text-[10px]", log.status === "complete" ? "text-ascent-green" : "text-ascent-gray")}>
+                    {log.status === "complete" ? "✓" : ">"}
+                  </span>
+                  <span className="text-white/80 font-mono text-xs truncate">{log.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "fog",
+      content: (
+        <div className="relative h-[500px] w-full rounded-2xl overflow-hidden border border-white/10 bg-ascent-obsidian/80">
+          <EvervaultBackground />
+          <div className="relative z-10 p-6 flex flex-col h-full justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-ascent-purple animate-pulse" />
+              <span className="text-xs font-mono text-ascent-purple uppercase">Fog Check</span>
+            </div>
+            <div className="flex-1 flex items-center justify-center">
+              <LibraryCareerQuote />
+            </div>
+          </div>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <AuroraBackground className="bg-ascent-black">
       <section className="relative w-full py-20 px-4 md:px-6 flex flex-col items-center">
@@ -161,8 +230,13 @@ export function Trinity() {
           </h2>
         </motion.div>
 
-        {/* BENTO GRID LAYOUT */}
-        <div className="relative z-10 w-full max-w-7xl grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6">
+        {/* MOBILE: CAROUSEL */}
+        <div className="block lg:hidden w-full relative z-10">
+          <TrinityCarousel cards={carouselCards} />
+        </div>
+
+        {/* DESKTOP: BENTO GRID - PRESERVED ORIGINAL LOGIC */}
+        <div className="hidden lg:grid relative z-10 w-full max-w-7xl grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6">
           
           {/* 1. VISION CANVAS (CHAT HUB STYLE) */}
           <motion.div

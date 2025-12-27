@@ -1,9 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { BackgroundBeams } from "@/components/ui/background-beams"; 
 import { EncryptedText } from "@/components/ui/encrypted-text";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { GlareCard } from "@/components/ui/glare-card";
 import { COPY } from "@/lib/constants";
@@ -14,18 +14,93 @@ import {
   viewportConfig 
 } from "@/lib/animations";
 
+// Custom typing effect that actually works
+const TypingText = ({ text, delay = 0, speed = 40 }: { text: string; delay?: number; speed?: number }) => {
+  const [displayedText, setDisplayedText] = useState("");
+  const [started, setStarted] = useState(false);
+
+  useEffect(() => {
+    const startTimer = setTimeout(() => setStarted(true), delay);
+    return () => clearTimeout(startTimer);
+  }, [delay]);
+
+  useEffect(() => {
+    if (!started) return;
+    
+    let i = 0;
+    const typing = setInterval(() => {
+      if (i < text.length) {
+        setDisplayedText(text.substring(0, i + 1));
+        i++;
+      } else {
+        clearInterval(typing);
+      }
+    }, speed);
+    
+    return () => clearInterval(typing);
+  }, [started, text, speed]);
+
+  return <span>{displayedText}</span>;
+};
+
+// Glitch effect for "0 clarity"
+const GlitchText = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <motion.span
+      className="relative inline-block text-ascent-red font-bold"
+      animate={{
+        textShadow: [
+          "0 0 25px rgba(239, 68, 68, 0.6)",
+          "0 0 35px rgba(239, 68, 68, 0.8), 2px 2px 0px rgba(239, 68, 68, 0.3)",
+          "0 0 25px rgba(239, 68, 68, 0.6)",
+        ],
+      }}
+      transition={{
+        duration: 0.8,
+        repeat: Infinity,
+        repeatDelay: 3,
+      }}
+    >
+      {children}
+      {/* Glitch clone */}
+      <motion.span
+        className="absolute top-0 left-0 text-ascent-red/30"
+        animate={{
+          x: [0, -2, 2, 0],
+          y: [0, 2, -2, 0],
+        }}
+        transition={{
+          duration: 0.2,
+          repeat: Infinity,
+          repeatDelay: 4,
+        }}
+      >
+        {children}
+      </motion.span>
+    </motion.span>
+  );
+};
+
 export function Fog() {
-  const introText = COPY.fog.subheading.split("You have 0 clarity")[0];
+  // Split the text properly
+  const fullText = COPY.fog.subheading;
+  const parts = fullText.split("0 clarity");
+  const beforeZero = parts[0]; // "You have 50 tabs open. You have 10 goals. You have "
+  const afterZero = parts[1] || "."; // "."
 
   return (
-    <section className="relative w-full py-20 md:py-32 flex flex-col items-center justify-center bg-ascent-obsidian overflow-x-hidden">
+    <section className="relative w-full py-20 md:py-32 flex flex-col items-center justify-center bg-ascent-obsidian overflow-hidden">
       
-      {/* 1. THE RADAR GRID (Technical, Clean, Map-like) */}
+      {/* BACKGROUND LAYERS */}
+      {/* 1. Radar Grid */}
       <div className="absolute inset-0 w-full h-full bg-ascent-obsidian bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.15] z-0 pointer-events-none">
           <div className="absolute inset-0 bg-ascent-obsidian [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]" />
       </div>
 
-      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none"><BackgroundBeams /></div>
+      {/* 2. Background Beams */}
+      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+        <BackgroundBeams />
+      </div>
 
       {/* CONTENT CONTAINER */}
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-6">
@@ -41,14 +116,14 @@ export function Fog() {
           <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight px-2">
             <EncryptedText 
               text={COPY.fog.h2}
-              revealDelayMs={50} // Slightly faster reveal
+              revealDelayMs={50}
               flipDelayMs={30}
               className="text-white drop-shadow-xl"
             />
           </h2>
         </motion.div>
 
-        {/* DICHOTOMY GRID */}
+        {/* DICHOTOMY GRID - Stack on mobile */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-20">
           
           {/* LEFT CARD - THE FOG */}
@@ -61,7 +136,7 @@ export function Fog() {
           >
             <CardSpotlight className="w-full max-w-lg min-h-[400px] md:h-[450px] p-8 border border-white/5 bg-ascent-obsidian/80 backdrop-blur-sm">
               <div className="relative z-10 flex flex-col justify-center h-full">
-                <h3 className="text-2xl font-bold text-ascent-muted mb-8 tracking-wide">
+                <h3 className="text-2xl font-bold text-ascent-gray mb-8 tracking-wide">
                   {COPY.fog.leftCard.title}
                 </h3>
                 
@@ -70,7 +145,7 @@ export function Fog() {
                     <motion.li
                       key={index}
                       className="text-lg text-white/50 flex items-start gap-4 font-mono"
-                      // The Blur Effect: Visualizing "Lack of Focus"
+                      // Blur effect - visualizing lack of focus
                       style={{ filter: "blur(0.8px)" }}
                       animate={{ opacity: [0.3, 0.7, 0.3] }}
                       transition={{
@@ -79,7 +154,7 @@ export function Fog() {
                         delay: index * 0.7,
                       }}
                     >
-                      <span className="text-ascent-warning/50 mt-1 text-sm shrink-0">✕</span>
+                      <span className="text-ascent-amber/50 mt-1 text-sm shrink-0">✕</span>
                       <span>{bullet}</span>
                     </motion.li>
                   ))}
@@ -96,7 +171,6 @@ export function Fog() {
             variants={slideInRightVariants}
             className="w-full flex justify-center"
           >
-             {/* GlareCard Container */}
              <div className="w-full max-w-lg h-[400px] md:h-[450px]">
                 <GlareCard className="flex flex-col items-start justify-center p-8 w-full h-full">
                     <h3 className="text-2xl font-bold text-white mb-8 tracking-wide">
@@ -113,7 +187,7 @@ export function Fog() {
                           transition={{ delay: 0.4 + (index * 0.2) }}
                           className="text-lg text-white flex items-start gap-4"
                         >
-                          {/* Crisp, glowing bullet point */}
+                          {/* Crisp, glowing bullet */}
                           <span className="text-ascent-blue mt-1.5 h-2 w-2 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)] bg-ascent-blue shrink-0" />
                           <span className="font-medium tracking-wide leading-snug">{bullet}</span>
                         </motion.li>
@@ -124,34 +198,51 @@ export function Fog() {
           </motion.div>
         </div>
 
-        {/* PUNCHLINE */}
+        {/* PUNCHLINE - FIXED */}
         <motion.div
           initial="initial"
           whileInView="animate"
           viewport={viewportConfig}
           variants={fadeInVariants}
           transition={{ delay: 0.4 }}
-          className="text-center max-w-2xl mx-auto px-4"
+          className="text-center max-w-3xl mx-auto px-4"
         >
-          {/* Part 1: The Setup */}
-          <div className="mb-4">
-            <TextGenerateEffect
-                words={introText}
-                className="text-xl md:text-2xl text-ascent-muted font-light leading-relaxed"
-                filter={false}
-                duration={0.04}
+          {/* The full statement with typing effect */}
+          <p className="text-xl md:text-2xl text-ascent-gray font-light leading-relaxed mb-6">
+            <TypingText 
+              text={beforeZero}
+              delay={300}
+              speed={30}
             />
-          </div>
-          
-          {/* Part 2: The Punchline */}
+            <GlitchText>0 clarity</GlitchText>
+            <TypingText 
+              text={afterZero}
+              delay={300 + (beforeZero.length * 30) + 500} // Wait for first part + extra pause
+              speed={30}
+            />
+          </p>
+
+          {/* Visual emphasis - Pulsing warning icon */}
           <motion.div
-            className="relative inline-block"
-            animate={{ scale: [1, 1.02, 1] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={viewportConfig}
+            transition={{ delay: 1.5 }}
+            className="flex justify-center mt-8"
           >
-             <p className="text-2xl md:text-4xl font-bold text-white">
-                You have <span className="text-ascent-warning drop-shadow-[0_0_25px_rgba(239,68,68,0.4)] underline decoration-ascent-warning/30 underline-offset-8">{COPY.fog.painPoint}</span>.
-             </p>
+            <motion.div
+              animate={{
+                boxShadow: [
+                  "0 0 0px rgba(239, 68, 68, 0.4)",
+                  "0 0 30px rgba(239, 68, 68, 0.6)",
+                  "0 0 0px rgba(239, 68, 68, 0.4)",
+                ],
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-16 h-16 rounded-full border-2 border-ascent-red flex items-center justify-center"
+            >
+              <span className="text-ascent-red text-3xl font-bold">!</span>
+            </motion.div>
           </motion.div>
         </motion.div>
 

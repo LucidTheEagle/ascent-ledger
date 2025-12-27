@@ -36,9 +36,14 @@ export function Hero() {
         animate="animate"
         className="relative z-10 flex flex-col items-center justify-center px-6 text-center max-w-5xl mx-auto space-y-8"
       >
-        {/* H1 WITH FLIP WORDS */}
+        {/* H1 WITH FLIP WORDS - RESPONSIVE SIZING */}
         <motion.div variants={slideUpVariants}>
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight">
+          <h1 
+            className="font-bold text-white leading-tight"
+            style={{
+              fontSize: "clamp(32px, 10vw, 72px)", // Mobile: 32px min, Desktop: 72px max
+            }}
+          >
             {COPY.hero.h1.staticText}
             <br />
             <LayoutTextFlip 
@@ -54,7 +59,7 @@ export function Hero() {
           variants={slideUpVariants}
           className="max-w-3xl"
         >
-          <p className="text-lg md:text-xl text-ascent-gray">
+          <p className="text-base md:text-xl text-ascent-gray">
             You are working hard. But are you{" "}
             <AuroraText
               colors={["#3B82F6", "#8B5CF6", "#3B82F6"]}
@@ -66,19 +71,19 @@ export function Hero() {
           </p>
         </motion.div>
 
-        {/* CTAs */}
+        {/* CTAs - STACK VERTICALLY ON MOBILE */}
         <motion.div
           variants={slideUpVariants}
-          className="flex flex-col sm:flex-row items-center gap-4 pt-4"
+          className="flex flex-col w-full sm:flex-row sm:w-auto items-center gap-4 pt-4"
         >
           {/* PRIMARY CTA - SHIMMER BUTTON */}
           <ShimmerButton
-            className="bg-ascent-blue hover:bg-ascent-blue/90 px-8 py-4 text-base font-semibold"
+            className="w-full sm:w-auto bg-ascent-blue hover:bg-ascent-blue/90 px-8 py-4 text-base font-semibold min-h-[44px]"
             shimmerColor="#ffffff"
             shimmerSize="0.1em"
             shimmerDuration="2s"
           >
-            <span className="flex items-center gap-2">
+            <span className="flex items-center justify-center gap-2">
               {COPY.hero.cta.primary}
               <ArrowRight className="w-5 h-5" />
             </span>
@@ -86,7 +91,7 @@ export function Hero() {
 
           {/* SECONDARY CTA - RIPPLE BUTTON */}
           <RippleButton
-            className="border-white/20 bg-transparent text-white hover:bg-white/5 px-8 py-4 text-base font-semibold"
+            className="w-full sm:w-auto border-white/20 bg-transparent text-white hover:bg-white/5 px-8 py-4 text-base font-semibold min-h-[44px]"
             rippleColor="#3B82F6"
           >
             {COPY.hero.cta.secondary}
