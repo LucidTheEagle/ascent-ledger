@@ -13,6 +13,7 @@ import {
   fadeInVariants,
   viewportConfig 
 } from "@/lib/animations";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 // Custom typing effect that actually works
 const TypingText = ({ text, delay = 0, speed = 40 }: { text: string; delay?: number; speed?: number }) => {
@@ -48,6 +49,7 @@ const GlitchText = ({ children }: { children: React.ReactNode }) => {
   return (
     <motion.span
       className="relative inline-block text-ascent-red font-bold"
+      style={{ willChange: "transform" }} // GPU hint
       animate={{
         textShadow: [
           "0 0 25px rgba(239, 68, 68, 0.6)",
@@ -65,6 +67,7 @@ const GlitchText = ({ children }: { children: React.ReactNode }) => {
       {/* Glitch clone */}
       <motion.span
         className="absolute top-0 left-0 text-ascent-red/30"
+        style={{ willChange: "transform" }}
         animate={{
           x: [0, -2, 2, 0],
           y: [0, 2, -2, 0],
@@ -82,11 +85,13 @@ const GlitchText = ({ children }: { children: React.ReactNode }) => {
 };
 
 export function Fog() {
+  const prefersReducedMotion = useReducedMotion();
+  
   // Split the text properly
   const fullText = COPY.fog.subheading;
   const parts = fullText.split("0 clarity");
-  const beforeZero = parts[0]; // "You have 50 tabs open. You have 10 goals. You have "
-  const afterZero = parts[1] || "."; // "."
+  const beforeZero = parts[0];
+  const afterZero = parts[1] || ".";
 
   return (
     <section className="relative w-full py-20 md:py-32 flex flex-col items-center justify-center bg-ascent-obsidian overflow-hidden">
@@ -97,10 +102,12 @@ export function Fog() {
           <div className="absolute inset-0 bg-ascent-obsidian [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]" />
       </div>
 
-      {/* 2. Background Beams */}
-      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
-        <BackgroundBeams />
-      </div>
+      {/* 2. Background Beams - Skip if reduced motion */}
+      {!prefersReducedMotion && (
+        <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+          <BackgroundBeams />
+        </div>
+      )}
 
       {/* CONTENT CONTAINER */}
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-6">
@@ -110,16 +117,23 @@ export function Fog() {
           initial="initial"
           whileInView="animate"
           viewport={viewportConfig}
-          variants={fadeInVariants}
+          variants={prefersReducedMotion ? undefined : fadeInVariants}
           className="text-center mb-16 md:mb-24"
         >
-          <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight px-2">
-            <EncryptedText 
-              text={COPY.fog.h2}
-              revealDelayMs={50}
-              flipDelayMs={30}
-              className="text-white drop-shadow-xl"
-            />
+          <h2 
+            className="text-3xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight px-2"
+            style={{ willChange: "transform, opacity" }}
+          >
+            {prefersReducedMotion ? (
+              COPY.fog.h2
+            ) : (
+              <EncryptedText 
+                text={COPY.fog.h2}
+                revealDelayMs={50}
+                flipDelayMs={30}
+                className="text-white drop-shadow-xl"
+              />
+            )}
           </h2>
         </motion.div>
 
@@ -131,7 +145,8 @@ export function Fog() {
             initial="initial"
             whileInView="animate"
             viewport={viewportConfig}
-            variants={slideInLeftVariants}
+            variants={prefersReducedMotion ? fadeInVariants : slideInLeftVariants}
+            style={{ willChange: "transform, opacity" }}
             className="w-full flex justify-center"
           >
             <CardSpotlight className="w-full max-w-lg min-h-[400px] md:h-[450px] p-8 border border-white/5 bg-ascent-obsidian/80 backdrop-blur-sm">
@@ -145,9 +160,11 @@ export function Fog() {
                     <motion.li
                       key={index}
                       className="text-lg text-white/50 flex items-start gap-4 font-mono"
-                      // Blur effect - visualizing lack of focus
-                      style={{ filter: "blur(0.8px)" }}
-                      animate={{ opacity: [0.3, 0.7, 0.3] }}
+                      style={{ 
+                        filter: prefersReducedMotion ? "none" : "blur(0.8px)",
+                        willChange: prefersReducedMotion ? "auto" : "opacity"
+                      }}
+                      animate={prefersReducedMotion ? {} : { opacity: [0.3, 0.7, 0.3] }}
                       transition={{
                         duration: 4,
                         repeat: Infinity,
@@ -168,7 +185,8 @@ export function Fog() {
             initial="initial"
             whileInView="animate"
             viewport={viewportConfig}
-            variants={slideInRightVariants}
+            variants={prefersReducedMotion ? fadeInVariants : slideInRightVariants}
+            style={{ willChange: "transform, opacity" }}
             className="w-full flex justify-center"
           >
              <div className="w-full max-w-lg h-[400px] md:h-[450px]">
@@ -185,6 +203,7 @@ export function Fog() {
                           whileInView={{ opacity: 1, x: 0 }}
                           viewport={viewportConfig}
                           transition={{ delay: 0.4 + (index * 0.2) }}
+                          style={{ willChange: "transform, opacity" }}
                           className="text-lg text-white flex items-start gap-4"
                         >
                           {/* Crisp, glowing bullet */}
@@ -203,23 +222,33 @@ export function Fog() {
           initial="initial"
           whileInView="animate"
           viewport={viewportConfig}
-          variants={fadeInVariants}
+          variants={prefersReducedMotion ? undefined : fadeInVariants}
           transition={{ delay: 0.4 }}
           className="text-center max-w-3xl mx-auto px-4"
         >
           {/* The full statement with typing effect */}
           <p className="text-xl md:text-2xl text-ascent-gray font-light leading-relaxed mb-6">
-            <TypingText 
-              text={beforeZero}
-              delay={300}
-              speed={30}
-            />
-            <GlitchText>0 clarity</GlitchText>
-            <TypingText 
-              text={afterZero}
-              delay={300 + (beforeZero.length * 30) + 500} // Wait for first part + extra pause
-              speed={30}
-            />
+            {prefersReducedMotion ? (
+              <>
+                {beforeZero}
+                <span className="text-ascent-red font-bold">0 clarity</span>
+                {afterZero}
+              </>
+            ) : (
+              <>
+                <TypingText 
+                  text={beforeZero}
+                  delay={300}
+                  speed={30}
+                />
+                <GlitchText>0 clarity</GlitchText>
+                <TypingText 
+                  text={afterZero}
+                  delay={300 + (beforeZero.length * 30) + 500}
+                  speed={30}
+                />
+              </>
+            )}
           </p>
 
           {/* Visual emphasis - Pulsing warning icon */}
@@ -231,7 +260,8 @@ export function Fog() {
             className="flex justify-center mt-8"
           >
             <motion.div
-              animate={{
+              style={{ willChange: prefersReducedMotion ? "auto" : "box-shadow" }}
+              animate={prefersReducedMotion ? {} : {
                 boxShadow: [
                   "0 0 0px rgba(239, 68, 68, 0.4)",
                   "0 0 30px rgba(239, 68, 68, 0.6)",

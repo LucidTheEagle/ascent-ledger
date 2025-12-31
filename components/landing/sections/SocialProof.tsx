@@ -13,8 +13,11 @@ import {
   fadeInVariants, 
   viewportConfig 
 } from "@/lib/animations";
+import { useReducedMotion, getParticleCount } from "@/hooks/useReducedMotion";
 
 export function SocialProof() {
+  const prefersReducedMotion = useReducedMotion();
+  const particleCount = getParticleCount(prefersReducedMotion);
   
   // Configure the words for the typewriter effect
   const subheadingWords = [
@@ -32,10 +35,12 @@ export function SocialProof() {
         <BackgroundRippleEffect />
       </div>
       
-      {/* LAYER 2: PARTICLES */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <Particles quantity={100} staticity={50} ease={80} color="#ffffff" />
-      </div>
+      {/* LAYER 2: PARTICLES - Reduced on mobile/reduced motion */}
+      {particleCount > 0 && (
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <Particles quantity={particleCount} staticity={50} ease={80} color="#ffffff" />
+        </div>
+      )}
 
       {/* CONTENT CONTAINER */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 w-full flex flex-col items-center">
@@ -48,9 +53,14 @@ export function SocialProof() {
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             transition={{ duration: 1 }}
+            style={{ willChange: "opacity" }}
             className="h-20 md:h-32 w-full flex items-center justify-center relative z-20"
           >
-             <TextHoverEffect text={COPY.socialProof.h2} />
+             {prefersReducedMotion ? (
+               <h2 className="text-4xl md:text-6xl font-bold text-white">{COPY.socialProof.h2}</h2>
+             ) : (
+               <TextHoverEffect text={COPY.socialProof.h2} />
+             )}
           </motion.div>
 
           {/* SUBHEADING - TYPEWRITER */}
@@ -59,11 +69,19 @@ export function SocialProof() {
               {COPY.socialProof.subheading.line1}
             </p>
 
-            <TypewriterEffectSmooth 
-              words={subheadingWords} 
-              className="text-xl md:text-3xl lg:text-4xl font-bold"
-              cursorClassName="bg-ascent-amber"
-            />
+            {prefersReducedMotion ? (
+              <p className="text-xl md:text-3xl lg:text-4xl font-bold">
+                {subheadingWords.map((word, i) => (
+                  <span key={i} className={word.className}>{word.text} </span>
+                ))}
+              </p>
+            ) : (
+              <TypewriterEffectSmooth 
+                words={subheadingWords} 
+                className="text-xl md:text-3xl lg:text-4xl font-bold"
+                cursorClassName="bg-ascent-amber"
+              />
+            )}
           </div>
         </div>
 
@@ -73,6 +91,7 @@ export function SocialProof() {
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={viewportConfig}
           transition={{ delay: 0.5, duration: 0.8 }}
+          style={{ willChange: "transform, opacity" }}
           className="w-full max-w-6xl mb-12 md:mb-16 px-2"
         >
           <div className="relative overflow-hidden rounded-lg md:rounded-xl border border-white/10 bg-ascent-obsidian/50 backdrop-blur-md">
@@ -101,15 +120,15 @@ export function SocialProof() {
           viewport={viewportConfig}
           variants={fadeInVariants}
           transition={{ delay: 1.2 }}
-          whileHover={{
+          whileHover={prefersReducedMotion ? {} : {
             x: [0, -2, 2, -2, 0],
           }}
+          style={{ willChange: prefersReducedMotion ? "auto" : "transform" }}
           className="w-full max-w-md px-4"
         >
           <MovingButton
             borderRadius="1.75rem"
-            duration={3500}
-            // RESPONSIVE CONTAINER: Mobile gets more height, desktop stays compact
+            duration={prefersReducedMotion ? 0 : 3500}
             containerClassName="h-14 md:h-16 w-full" 
             className="bg-transparent text-white font-semibold text-base md:text-lg shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] transition-shadow duration-300"
           >

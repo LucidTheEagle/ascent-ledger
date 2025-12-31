@@ -1,21 +1,70 @@
-import { Navbar } from "@/components/landing/navigation/Navbar";
-import { FloatingNavbar } from "@/components/landing/navigation/FloatingNavbar";
-import { Hero } from "@/components/landing/sections/Hero";
-import { Fog } from "@/components/landing/sections/Fog";
-import { Trinity } from "@/components/landing/sections/Trinity";
-import { SocialProof } from "@/components/landing/sections/SocialProof";
-import { Footer } from "@/components/landing/sections/Footer";
+// app/page.tsx
+// Oracle's Approach: Prevent layout shift with fixed-height skeletons
 
-export default function HomePage() {
+import dynamic from 'next/dynamic';
+import { Navbar } from '@/components/landing/navigation/Navbar';
+import { FloatingNavbar } from '@/components/landing/navigation/FloatingNavbar';
+import { Hero } from '@/components/landing/sections/Hero';
+
+// CRITICAL: Hero loads instantly (Above the fold)
+// Below-fold sections use next/dynamic with skeleton placeholders
+
+// Fixed-height skeletons prevent layout shift (CLS)
+const Fog = dynamic(
+  () => import('@/components/landing/sections/Fog').then(mod => ({ default: mod.Fog })),
+  {
+    loading: () => <div className="w-full min-h-[900px] bg-ascent-obsidian" />,
+    ssr: true,
+  }
+);
+
+const Trinity = dynamic(
+  () => import('@/components/landing/sections/Trinity').then(mod => ({ default: mod.Trinity })),
+  {
+    loading: () => <div className="w-full min-h-[1000px] bg-ascent-black" />,
+    ssr: true,
+  }
+);
+
+const SocialProof = dynamic(
+  () => import('@/components/landing/sections/SocialProof').then(mod => ({ default: mod.SocialProof })),
+  {
+    loading: () => <div className="w-full min-h-screen bg-ascent-black" />,
+    ssr: true,
+  }
+);
+
+const Footer = dynamic(
+  () => import('@/components/landing/sections/Footer').then(mod => ({ default: mod.Footer })),
+  {
+    loading: () => <div className="w-full min-h-[500px] bg-ascent-black" />,
+    ssr: true,
+  }
+);
+
+export default function Home() {
   return (
-    <main className="relative min-h-screen overflow-x-hidden">
+    <>
+      {/* NAVIGATION - Always visible */}
       <Navbar />
       <FloatingNavbar />
-      <Hero />
-      <Fog />
-      <Trinity />
-      <SocialProof />
-      <Footer />  
-    </main>
+
+      {/* MAIN CONTENT */}
+      <main className="flex min-h-screen flex-col items-center justify-between bg-ascent-black overflow-x-hidden">
+        
+        {/* Hero loads instantly (Above the fold) */}
+        <Hero />
+        
+        {/* Below-fold sections load dynamically */}
+        <Fog />
+        
+        <Trinity />
+        
+        <SocialProof />
+
+        <Footer />
+        
+      </main>
+    </>
   );
 }
