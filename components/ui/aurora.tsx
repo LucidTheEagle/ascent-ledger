@@ -3,7 +3,7 @@
 import React, { memo } from "react"
 
 interface AuroraTextProps {
-  children: React.ReactNode
+  children?: React.ReactNode
   className?: string
   colors?: string[]
   speed?: number
