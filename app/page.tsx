@@ -49,18 +49,26 @@ export default function Home() {
       <Navbar />
       <FloatingNavbar />
 
-      {/* MAIN CONTENT */}
+      {/* MAIN CONTENT - Semantic HTML */}
       <main className="flex min-h-screen flex-col items-center justify-between bg-ascent-black overflow-x-hidden">
         
         {/* Hero loads instantly (Above the fold) */}
-        <Hero />
+        <section aria-labelledby="hero-heading">
+          <Hero />
+        </section>
         
         {/* Below-fold sections load dynamically */}
-        <Fog />
+        <section aria-labelledby="fog-heading">
+          <Fog />
+        </section>
         
-        <Trinity />
+        <section aria-labelledby="trinity-heading">
+          <Trinity />
+        </section>
         
-        <SocialProof />
+        <section aria-labelledby="social-proof-heading">
+          <SocialProof />
+        </section>
 
         <Footer />
         

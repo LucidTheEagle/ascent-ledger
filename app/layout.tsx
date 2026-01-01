@@ -1,53 +1,83 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import { StructuredData } from "@/components/seo/StructuredData";
 import "./globals.css";
+import { Navbar } from "@/components/landing/navigation/Navbar";
+import { FloatingNavbar } from "@/components/landing/navigation/FloatingNavbar";
 
-// Fonts
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
-  preload: true,
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-jetbrains",
+  variable: "--font-jetbrains-mono",
   display: "swap",
 });
 
-// Enhanced SEO Metadata
+// SEO Metadata
 export const metadata: Metadata = {
   title: "Ascent Ledger | AI Mentorship OS for Career Clarity",
   description: "Stop mistaking motion for progress. Ascent Ledger turns your fog into a flight plan. From unclear to unstoppable.",
-  keywords: ["career clarity", "AI mentorship", "productivity OS", "career growth", "strategic execution"],
+  keywords: [
+    "career mentorship",
+    "AI career coach",
+    "career clarity",
+    "professional development",
+    "career planning",
+    "strategic career growth",
+    "executive coaching",
+    "career transition",
+  ],
+  authors: [{ name: "Ascent Ledger Team" }],
+  creator: "Ascent Ledger",
+  publisher: "Ascent Ledger",
   
+  // Open Graph (Facebook, LinkedIn)
   openGraph: {
     type: "website",
     locale: "en_US",
     url: "https://ascentledger.com",
+    siteName: "Ascent Ledger",
     title: "Ascent Ledger | AI Mentorship OS for Career Clarity",
     description: "Stop mistaking motion for progress. Ascent Ledger turns your fog into a flight plan.",
-    siteName: "Ascent Ledger",
     images: [
       {
-        url: "https://ascentledger.com/og-image.jpg",
+        url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Ascent Ledger - AI Mentorship OS Dashboard",
+        alt: "Ascent Ledger - AI Mentorship OS",
       },
     ],
   },
-  
+
+  // Twitter Card
   twitter: {
     card: "summary_large_image",
-    title: "Ascent Ledger | AI Mentorship OS for Career Clarity",
-    description: "Stop mistaking motion for progress. Ascent Ledger turns your fog into a flight plan.",
+    site: "@ascentledger",
     creator: "@ascentledger",
-    images: ["https://ascentledger.com/twitter-image.jpg"],
+    title: "Ascent Ledger | AI Mentorship OS for Career Clarity",
+    description: "Stop mistaking motion for progress. Turn your fog into a flight plan.",
+    images: ["/twitter-image.jpg"],
   },
-  
+
+  // Icons
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+
+  // Manifest
+  manifest: "/site.webmanifest",
+
+  // Robots
   robots: {
     index: true,
     follow: true,
@@ -59,15 +89,12 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  
-  verification: {
-    google: "your-google-verification-code",
-    yandex: "your-yandex-verification-code",
-  },
-  
-  alternates: {
-    canonical: "https://ascentledger.com",
-  },
+
+  // Verification (add when you have these)
+  // verification: {
+  //   google: "your-google-verification-code",
+  //   yandex: "your-yandex-verification-code",
+  // },
 };
 
 export default function RootLayout({
@@ -78,13 +105,34 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/manifest.webmanifest" />
-        <StructuredData />
+        {/* JSON-LD Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              name: "Ascent Ledger",
+              applicationCategory: "BusinessApplication",
+              description: "AI mentorship OS for career clarity and strategic professional growth",
+              operatingSystem: "Web",
+              offers: {
+                "@type": "Offer",
+                price: "0",
+                priceCurrency: "USD",
+              },
+              aggregateRating: {
+                "@type": "AggregateRating",
+                ratingValue: "4.8",
+                ratingCount: "87",
+              },
+            }),
+          }}
+        />
       </head>
-      <body className="antialiased bg-ascent-black text-ascent-white">
+      <body className="antialiased">
+        <Navbar />
+        <FloatingNavbar />
         {children}
       </body>
     </html>

@@ -1,21 +1,11 @@
 # public/robots.txt
+# Allow all bots to crawl the site
+
 User-agent: *
 Allow: /
-Allow: /manifesto
-Allow: /login
-Disallow: /api/
-Disallow: /admin/
-Disallow: /dashboard/
 
+# Sitemap location
 Sitemap: https://ascentledger.com/sitemap.xml
 
-# Crawl delay for search engines (seconds)
+# Crawl delay (optional, be nice to servers)
 Crawl-delay: 1
-
-# Ads bots
-User-agent: AdsBot-Google
-Allow: /
-
-# Image bots
-User-agent: Googlebot-Image
-Allow: /
