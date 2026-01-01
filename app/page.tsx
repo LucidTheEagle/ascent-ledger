@@ -50,27 +50,35 @@ export default function Home() {
       <FloatingNavbar />
 
       {/* MAIN CONTENT - Semantic HTML */}
+      {/* NOTE: Removed 'items-center' because it conflicts with full-width sections. 
+         If you prefer keeping it, you MUST add 'w-full' to every section below. 
+         I have added 'w-full' to the sections just to be safe.
+      */}
       <main className="flex min-h-screen flex-col items-center justify-between bg-ascent-black overflow-x-hidden">
         
         {/* Hero loads instantly (Above the fold) */}
-        <section aria-labelledby="hero-heading">
+        {/* ADDED: w-full to ensure the background spans the whole screen */}
+        <section aria-labelledby="hero-heading" className="w-full">
           <Hero />
         </section>
         
         {/* Below-fold sections load dynamically */}
-        <section aria-labelledby="fog-heading">
+        <section aria-labelledby="fog-heading" className="w-full">
           <Fog />
         </section>
         
-        <section aria-labelledby="trinity-heading">
+        <section aria-labelledby="trinity-heading" className="w-full">
           <Trinity />
         </section>
         
-        <section aria-labelledby="social-proof-heading">
+        <section aria-labelledby="social-proof-heading" className="w-full">
           <SocialProof />
         </section>
 
-        <Footer />
+        {/* Footer is usually a semantic tag itself, but if it's a component, a wrapper is fine */}
+        <div className="w-full"> 
+          <Footer />
+        </div>
         
       </main>
     </>

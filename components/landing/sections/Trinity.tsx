@@ -247,6 +247,7 @@ export function Trinity() {
           className="text-center mb-16 relative z-10"
         >
           <h2 
+            id="trinity-heading"
             className={cn(
               "text-4xl md:text-6xl font-bold transition-all duration-700 tracking-tight",
               h2Phase === "gray" ? "text-ascent-gray" : 

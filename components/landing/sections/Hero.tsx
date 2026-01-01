@@ -40,6 +40,7 @@ export function Hero() {
         {/* H1 WITH FLIP WORDS */}
         <motion.div variants={prefersReducedMotion ? undefined : slideUpVariants}>
           <h1 
+            id="hero-heading"
             className="font-bold text-white leading-tight"
             style={{
               fontSize: "clamp(32px, 10vw, 72px)",

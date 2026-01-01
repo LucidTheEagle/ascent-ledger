@@ -57,7 +57,7 @@ export function SocialProof() {
             className="h-20 md:h-32 w-full flex items-center justify-center relative z-20"
           >
              {prefersReducedMotion ? (
-               <h2 className="text-4xl md:text-6xl font-bold text-white">{COPY.socialProof.h2}</h2>
+               <h2 id="social-proof-heading" className="text-4xl md:text-6xl font-bold text-white">{COPY.socialProof.h2}</h2>
              ) : (
                <TextHoverEffect text={COPY.socialProof.h2} />
              )}

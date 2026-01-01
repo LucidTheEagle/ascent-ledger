@@ -121,6 +121,7 @@ export function Fog() {
           className="text-center mb-16 md:mb-24"
         >
           <h2 
+            id="fog-heading"
             className="text-3xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight px-2"
             style={{ willChange: "transform, opacity" }}
           >
