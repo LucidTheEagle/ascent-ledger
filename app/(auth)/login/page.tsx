@@ -47,7 +47,7 @@ export default function LoginPage() {
       setError(error.message)
       setLoading(false)
     } else {
-      router.push('/dashboard')
+      router.push('/onboarding')
     }
   }
 
@@ -61,7 +61,7 @@ export default function LoginPage() {
       <form onSubmit={handleEmailLogin} className="space-y-4">
         {error && (
           <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/50 text-red-400 text-sm flex items-start gap-2">
-            <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
             <span>{error}</span>
           </div>
         )}
