@@ -4,18 +4,17 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const next = requestUrl.searchParams.get('next') ?? '/dashboard'
+  const next = requestUrl.searchParams.get('next') ?? '/onboarding' // CHANGED: Redirect to onboarding
 
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-      // Successful auth - redirect to dashboard
+      // Success - redirect to onboarding fork
       return NextResponse.redirect(new URL(next, requestUrl.origin))
     } else {
       console.error('Auth callback error:', error)
-      // Redirect to login with error
       return NextResponse.redirect(new URL('/login?error=auth_failed', requestUrl.origin))
     }
   }

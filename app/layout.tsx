@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/landing/navigation/Navbar";
-import { FloatingNavbar } from "@/components/landing/navigation/FloatingNavbar";
+import { NavigationWrapper } from "@/components/wrapper/NavigationWrapper";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -131,8 +130,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <Navbar />
-        <FloatingNavbar />
+        <NavigationWrapper />
         {children}
       </body>
     </html>

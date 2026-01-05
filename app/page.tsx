@@ -1,9 +1,6 @@
 // app/page.tsx
-// Oracle's Approach: Prevent layout shift with fixed-height skeletons
 
 import dynamic from 'next/dynamic';
-import { Navbar } from '@/components/landing/navigation/Navbar';
-import { FloatingNavbar } from '@/components/landing/navigation/FloatingNavbar';
 import { Hero } from '@/components/landing/sections/Hero';
 
 // CRITICAL: Hero loads instantly (Above the fold)
@@ -45,15 +42,7 @@ const Footer = dynamic(
 export default function Home() {
   return (
     <>
-      {/* NAVIGATION - Always visible */}
-      <Navbar />
-      <FloatingNavbar />
 
-      {/* MAIN CONTENT - Semantic HTML */}
-      {/* NOTE: Removed 'items-center' because it conflicts with full-width sections. 
-         If you prefer keeping it, you MUST add 'w-full' to every section below. 
-         I have added 'w-full' to the sections just to be safe.
-      */}
       <main className="flex min-h-screen flex-col items-center justify-between bg-ascent-black overflow-x-hidden">
         
         {/* Hero loads instantly (Above the fold) */}
