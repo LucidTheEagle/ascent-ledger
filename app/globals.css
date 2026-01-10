@@ -180,6 +180,10 @@
       transform: translateX(-50%);
     }
   }
+
+  .animate-shimmer {
+    animation: shimmer 3s infinite;
+  }
   
   .animate-scroll-ticker {
     animation: scroll-ticker linear infinite;

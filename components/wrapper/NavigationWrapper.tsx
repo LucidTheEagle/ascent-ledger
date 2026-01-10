@@ -14,7 +14,8 @@ export function NavigationWrapper() {
     "/onboarding",
     "/dashboard",
     "/fog-triage",
-    "/vision-canvas"
+    "/vision-canvas",
+    "/crisis-triage"
   ];
 
   // Check if current path starts with any of the hidden paths
