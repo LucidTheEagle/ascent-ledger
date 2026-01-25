@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { NavigationWrapper } from "@/components/wrapper/NavigationWrapper";
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
+import OfflineDetector from '@/components/shared/OfflineDetector';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -88,12 +90,6 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-
-  // Verification (add when you have these)
-  // verification: {
-  //   google: "your-google-verification-code",
-  //   yandex: "your-yandex-verification-code",
-  // },
 };
 
 export default function RootLayout({
@@ -130,8 +126,11 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <NavigationWrapper />
-        {children}
+        <ErrorBoundary>
+          <OfflineDetector />
+          <NavigationWrapper />
+          {children}
+        </ErrorBoundary>
       </body>
     </html>
   );
