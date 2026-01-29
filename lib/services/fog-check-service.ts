@@ -1,15 +1,19 @@
 // ============================================
 // lib/services/fog-check-service.ts
 // THE ORCHESTRATOR: Assembles context and generates Fog Checks
-// FIXED: Proper error handling, no fallback masquerading as content
+// UPDATED: Week 4+ pattern detection from FalkorDB
 // ============================================
 
 import { prisma } from '@/lib/prisma';
 import { generateFogCheck } from '@/lib/ai/groq-client';
-import { buildPatternHunterPrompt } from '@/lib/ai/prompts/pattern-hunter';
+import { 
+  buildPatternHunterPrompt, 
+  buildPatternHunterPromptWithPatterns 
+} from '@/lib/ai/prompts/pattern-hunter';
 import { findSimilarLogs, SimilarLog } from '@/lib/db/vector-search';
 import { stringToEmbedding } from '@/lib/ai/embeddings';
 import { getAscentWeek } from '@/lib/utils/week-calculator';
+import { detectAllPatterns } from '@/lib/graph/patterns';
 
 interface FogCheckResult {
   observation: string;
@@ -88,23 +92,59 @@ export async function generateFogCheckForLog(
     }
   }
 
-  // 6. Build the prompt
-  const prompt = buildPatternHunterPrompt(
-    {
-      visionStatement: vision.aiSynthesis,
-      desiredState: vision.desiredState,
-      antiGoal: vision.antiGoal,
-    },
-    {
-      leverageBuilt: log.leverageBuilt,
-      learnedInsight: log.learnedInsight,
-      opportunitiesCreated: log.opportunitiesCreated,
-      isSurvivalMode: log.isSurvivalMode,
-      hadNoLeverage: log.hadNoLeverage,
-    },
-    weekNumber,
-    similarLogs
-  );
+  // 6. Build the prompt (with or without patterns)
+  let prompt: string;
+
+  if (weekNumber >= 4) {
+    // Week 4+: Use pattern detection from FalkorDB
+    console.log(`[Fog Check] Week ${weekNumber} - Running pattern detection...`);
+    
+    const patterns = await detectAllPatterns(
+      log.userId,
+      vision.desiredState,
+      4 // Look back 4 weeks
+    );
+
+    if (patterns.hasPatterns) {
+      console.log(`[Fog Check] Patterns detected:`, patterns.summary);
+    }
+
+    prompt = buildPatternHunterPromptWithPatterns(
+      {
+        visionStatement: vision.aiSynthesis,
+        desiredState: vision.desiredState,
+        antiGoal: vision.antiGoal,
+      },
+      {
+        leverageBuilt: log.leverageBuilt,
+        learnedInsight: log.learnedInsight,
+        opportunitiesCreated: log.opportunitiesCreated,
+        isSurvivalMode: log.isSurvivalMode,
+        hadNoLeverage: log.hadNoLeverage,
+      },
+      weekNumber,
+      patterns,
+      similarLogs
+    );
+  } else {
+    // Week 2-3: Basic pattern hunter (no graph patterns yet)
+    prompt = buildPatternHunterPrompt(
+      {
+        visionStatement: vision.aiSynthesis,
+        desiredState: vision.desiredState,
+        antiGoal: vision.antiGoal,
+      },
+      {
+        leverageBuilt: log.leverageBuilt,
+        learnedInsight: log.learnedInsight,
+        opportunitiesCreated: log.opportunitiesCreated,
+        isSurvivalMode: log.isSurvivalMode,
+        hadNoLeverage: log.hadNoLeverage,
+      },
+      weekNumber,
+      similarLogs
+    );
+  }
 
   // 7. Generate Fog Check via Groq
   const fogCheck = await generateFogCheck(prompt, {

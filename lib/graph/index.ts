@@ -2,7 +2,7 @@
 // lib/graph/index.ts
 // THE GATEWAY: Export Barrel for Graph Module
 // Role: Single import point for all graph operations
-// Phase: Sprint 3, Checkpoint 3
+// Phase: Sprint 3, Checkpoint 4
 // ============================================
 
 // Core client
@@ -87,7 +87,7 @@ export {
 } from './relationships';
 
 // ============================================
-// NEW: SYNC ORCHESTRATORS (Sprint 3, Checkpoint 3)
+// SYNC ORCHESTRATORS (Sprint 3, Checkpoint 3)
 // ============================================
 
 // Log sync
@@ -109,3 +109,23 @@ export {
   updateUserVision,
   getUserVisionHistory,
 } from './sync-vision';
+
+// ============================================
+// PATTERN DETECTION (Sprint 3, Checkpoint 4)
+// ============================================
+
+// Pattern detection orchestrator
+export type {
+  PatternDetectionResult,
+  LearningWithoutActionPattern,
+  SlidingIntoFogPattern,
+  VisionMisalignmentPattern,
+} from './patterns';
+
+export {
+  detectAllPatterns,
+  detectLearningWithoutAction,
+  detectSlidingIntoFog,
+  detectVisionMisalignment,
+  extractVisionKeywords,
+} from './patterns';
