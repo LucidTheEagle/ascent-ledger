@@ -1,10 +1,11 @@
 // ============================================
 // lib/ai/prompts/pattern-hunter.ts
 // THE SOUL: Reddington-Voice Prompts
-// Week 2-3 version (before pattern detection)
+// UPDATED: Week 4+ with pattern detection from FalkorDB
 // ============================================
 
 import { SimilarLog } from '@/lib/db/vector-search';
+import type { PatternDetectionResult } from '@/lib/graph/patterns';
 
 interface VisionContext {
   visionStatement: string;
@@ -132,6 +133,47 @@ OUTPUT FORMAT (JSON):
 }
 
 Generate the Fog Check now:`;
+
+  return prompt;
+}
+
+/**
+ * Generate Pattern Hunter prompt for Week 4+
+ * WITH pattern detection from FalkorDB graph
+ * 
+ * Focus: Long-term trends, behavioral patterns, calling out avoidance
+ */
+export function buildPatternHunterPromptWithPatterns(
+  vision: VisionContext,
+  currentLog: CurrentLog,
+  weekNumber: number,
+  patterns: PatternDetectionResult,
+  similarLogs?: SimilarLog[]
+): string {
+  // Start with base prompt
+  let prompt = buildPatternHunterPrompt(vision, currentLog, weekNumber, similarLogs);
+
+  // Inject pattern detection data before core instructions
+  const insertPoint = prompt.indexOf('\n\nYOUR TASK:');
+  
+  const patternSection = `\n\n[PATTERN DETECTION - WEEK ${weekNumber}+]:
+Graph analysis of your last 4 weeks reveals:
+
+${patterns.hasPatterns ? patterns.summary.join('\n\n') : 'No negative patterns detected. You are aligned and progressing.'}
+
+${patterns.hasPatterns ? `
+
+CRITICAL INSTRUCTION:
+The patterns above are FACTS from the graph database, not speculation.
+You MUST reference at least one detected pattern in your observation.
+Be surgical. Be direct. These patterns show avoidance.
+
+If "Learning Without Action" detected: Call out that they're hiding in research.
+If "Sliding Into Fog" detected: Warn them they're backsliding into what they're escaping.
+If "Vision Misalignment" detected: Point out they're staying in comfort zone.
+` : ''}`;
+
+  prompt = prompt.slice(0, insertPoint) + patternSection + prompt.slice(insertPoint);
 
   return prompt;
 }
