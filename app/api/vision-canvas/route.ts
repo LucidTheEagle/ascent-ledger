@@ -201,6 +201,38 @@ export async function POST(request: NextRequest) {
       return { visionCanvas, fogCheck }
     })
 
+    // ============================================
+    // THE BRAIN: SYNC TO GRAPH (ASYNC)
+    // ============================================
+    // Sync vision to FalkorDB for pattern detection
+    // This runs asynchronously - user doesn't wait for it
+    // If graph sync fails, app continues (graceful degradation)
+    import('@/lib/graph/sync-vision')
+      .then(({ syncVisionToGraph }) => {
+        return syncVisionToGraph({
+          userId: user.id,
+          userEmail: user.email!,
+          visionId: result.visionCanvas.id,
+          currentState,
+          desiredState,
+          successDefinition,
+          uniqueSkills,
+          purposeStatement,
+          antiGoal,
+        });
+      })
+      .then(syncResult => {
+        if (syncResult.success) {
+          console.log(`✅ Graph synced for vision ${result.visionCanvas.id}: user=${syncResult.userNodeCreated}, vision=${syncResult.visionNodeCreated}, fog=${syncResult.fogNodeCreated}`);
+        } else {
+          console.warn(`⚠️ Graph sync incomplete for vision ${result.visionCanvas.id}: ${syncResult.error}`);
+        }
+      })
+      .catch(error => {
+        console.error(`❌ Graph sync failed for vision ${result.visionCanvas.id}:`, error);
+        // Don't fail the request - graph sync is enhancement, not dependency
+      });
+
     // 6. RETURN SUCCESS
     return NextResponse.json({
       success: true,
