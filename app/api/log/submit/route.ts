@@ -3,6 +3,7 @@
 // THE SOUL: Receives the user's truth
 // THE MIND: Validates, prevents duplicates, calculates week
 // THE HEART: Prepares for the Fog Check
+// THE BRAIN: Syncs to graph for pattern detection
 // ============================================
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -141,6 +142,37 @@ export async function POST(req: NextRequest) {
       .catch(error => {
         console.error(`❌ Failed to generate embedding for log ${strategicLog.id}:`, error);
         // Don't fail the request - embedding is optional for MVP
+      });
+
+    // ============================================
+    // THE BRAIN: SYNC TO GRAPH (ASYNC)
+    // ============================================
+    // Sync log to FalkorDB for pattern detection
+    // This runs asynchronously - user doesn't wait for it
+    // If graph sync fails, app continues (graceful degradation)
+    import('@/lib/graph/sync-log')
+      .then(({ syncLogToGraph }) => {
+        return syncLogToGraph({
+          userId: body.userId,
+          logId: strategicLog.id,
+          weekOf: weekOf,
+          weekNumber: ascentWeek,
+          leverageBuilt: body.leverageBuilt,
+          learnedInsight: body.learnedInsight,
+          opportunitiesCreated: body.opportunitiesCreated,
+          hadLeverage: !body.hadNoLeverage,
+        });
+      })
+      .then(result => {
+        if (result.success) {
+          console.log(`Graph synced for log ${strategicLog.id}: ${result.topicsCreated} topics, fog=${result.fogDetected}`);
+        } else {
+          console.warn(`Graph sync incomplete for log ${strategicLog.id}: ${result.error}`);
+        }
+      })
+      .catch(error => {
+        console.error(`Graph sync failed for log ${strategicLog.id}:`, error);
+        // Don't fail the request - graph sync is enhancement, not dependency
       });
 
     // ============================================
