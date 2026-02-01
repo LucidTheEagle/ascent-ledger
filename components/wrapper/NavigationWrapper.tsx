@@ -10,7 +10,7 @@ export function NavigationWrapper() {
   const hiddenPaths = [
     "/sign-up", 
     "/login", 
-    "/verify-email", 
+    "/auth/verify-email", 
     "/onboarding",
     "/dashboard",
     "/fog-triage",

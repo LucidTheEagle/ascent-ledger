@@ -1,6 +1,7 @@
 // ============================================
 // lib/supabase/middleware.ts
 // Supabase Auth Middleware for Next.js 16
+// FIXED: Prevents redirect loops on auth pages
 // ============================================
 
 import { createServerClient } from '@supabase/ssr';
@@ -20,7 +21,7 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
           supabaseResponse = NextResponse.next({
@@ -33,6 +34,17 @@ export async function updateSession(request: NextRequest) {
       },
     }
   );
+
+  // Auth pages - always allow access (prevents redirect loop)
+  const authPaths = ['/login', '/sign-up', '/auth'];
+  const isAuthPath = authPaths.some(path => 
+    request.nextUrl.pathname.startsWith(path)
+  );
+
+  // If on auth page, skip authentication check
+  if (isAuthPath) {
+    return supabaseResponse;
+  }
 
   // IMPORTANT: Avoid writing any logic between createServerClient and
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
@@ -55,8 +67,6 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Allow access to all other routes (including /login and /sign-up)
-  // Users can manually navigate to auth pages even when logged in
-  // This enables: switching accounts, signing up others, etc.
+  // Allow access to all other routes
   return supabaseResponse;
 }

@@ -8,9 +8,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { Eye, EyeOff, Lock, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Eye, EyeOff, Lock, AlertCircle, CheckCircle2, User } from 'lucide-react'
 
-// Password strength validator
+// ==========================================
+// PASSWORD STRENGTH LOGIC
+// ==========================================
 function checkPasswordStrength(password: string) {
   const checks = {
     length: password.length >= 8,
@@ -44,61 +46,114 @@ function checkPasswordStrength(password: string) {
   }
 }
 
+// ==========================================
+// MAIN COMPONENT
+// ==========================================
 export default function SignUpPage() {
   const router = useRouter()
   const supabase = createClient()
   
   const [showForm, setShowForm] = useState(false)
+  
+  // FORM STATE
+  const [fullName, setFullName] = useState('') // Added Full Name
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  
+  // STATUS STATE
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const passwordStrength = password ? checkPasswordStrength(password) : null
 
+  // ------------------------------------------
+  // HANDLER: Google OAuth
+  // ------------------------------------------
   const handleGoogleSignUp = async () => {
     setLoading(true)
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-    if (error) {
-      setError(error.message)
+    setError(null)
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      if (error) throw error
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "message" in err && typeof (err as { message?: unknown }).message === "string") {
+        setError((err as { message: string }).message)
+      } else {
+        setError("An unknown error occurred")
+      }
       setLoading(false)
     }
   }
 
+  // ------------------------------------------
+  // HANDLER: Email/Password Signup
+  // ------------------------------------------
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    // Validate password strength
+    // 1. Validation
     if (passwordStrength && passwordStrength.strength < 3) {
       setError('Password is too weak. Please use a stronger password.')
       setLoading(false)
       return
     }
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-
-    if (error) {
-      setError(error.message)
+    if (!fullName.trim()) {
+      setError('Please enter your full name.')
       setLoading(false)
-    } else {
-      // Redirect to verify email page
-      router.push('/auth/verify-email')
+      return
     }
-  }
+
+    try {
+      // 2. Supabase Sign Up
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          // This saves the name to the user's metadata immediately
+          data: {
+            full_name: fullName,
+          },
+        },
+      })
+
+      if (error) {
+        // Handle "User already registered" specifically if needed, otherwise generic
+        throw error
+      } 
+      
+      // 3. Success Redirect (Claude's Fix + Safety Check)
+      if (data?.user && !data.session) {
+        // Email confirmation flow (Standard)
+        router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
+      } else if (data?.session) {
+        // Auto-login flow (If email confirmation is off)
+        router.push('/dashboard')
+      }
+
+    } catch (err: unknown) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'message' in err &&
+        typeof (err as { message?: unknown }).message === 'string'
+      ) {
+        setError((err as { message: string }).message)
+      } else {
+        setError('Failed to sign up. Please try again.')
+      }
+      setLoading(false)
+    }
+    }
 
   return (
     <div className="w-full max-w-md space-y-8">
@@ -164,6 +219,23 @@ export default function SignUpPage() {
               </div>
             )}
 
+            {/* NEW: Full Name Field */}
+            <div className="space-y-2">
+              <Label htmlFor="fullName" className="text-white flex items-center gap-2">
+                <User className="w-4 h-4" />
+                Full Name
+              </Label>
+              <Input
+                id="fullName"
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                className="bg-gray-900 border-gray-700 text-white focus:border-ascent-blue"
+                placeholder="Victor Eagle"
+              />
+            </div>
+
             {/* Email Field */}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-white flex items-center gap-2">
@@ -219,7 +291,6 @@ export default function SignUpPage() {
                   animate={{ opacity: 1, height: 'auto' }}
                   className="space-y-2"
                 >
-                  {/* Strength Bar */}
                   <div className="flex gap-1">
                     {[1, 2, 3, 4, 5].map((level) => (
                       <div
@@ -232,34 +303,17 @@ export default function SignUpPage() {
                       />
                     ))}
                   </div>
-
-                  {/* Strength Label */}
                   <p className={`text-xs ${passwordStrength.color}`}>
                     {passwordStrength.label}
                   </p>
-
-                  {/* Requirements Checklist */}
-                  <div className="space-y-1 text-xs">
-                    <RequirementCheck
-                      met={passwordStrength.checks.length}
-                      text="At least 8 characters"
-                    />
-                    <RequirementCheck
-                      met={passwordStrength.checks.uppercase}
-                      text="One uppercase letter"
-                    />
-                    <RequirementCheck
-                      met={passwordStrength.checks.lowercase}
-                      text="One lowercase letter"
-                    />
-                    <RequirementCheck
-                      met={passwordStrength.checks.number}
-                      text="One number"
-                    />
-                    <RequirementCheck
-                      met={passwordStrength.checks.special}
-                      text="One special character (!@#$%^&*)"
-                    />
+                  
+                  {/* Requirements List */}
+                  <div className="grid grid-cols-1 gap-1 text-xs sm:grid-cols-2">
+                    <RequirementCheck met={passwordStrength.checks.length} text="8+ characters" />
+                    <RequirementCheck met={passwordStrength.checks.uppercase} text="Uppercase letter" />
+                    <RequirementCheck met={passwordStrength.checks.lowercase} text="Lowercase letter" />
+                    <RequirementCheck met={passwordStrength.checks.number} text="Number" />
+                    <RequirementCheck met={passwordStrength.checks.special} text="Special char (!@#)" />
                   </div>
                 </motion.div>
               )}
@@ -267,11 +321,18 @@ export default function SignUpPage() {
 
             <Button
               type="submit"
-              disabled={loading || (passwordStrength?.strength ?? 5) < 3}
+              disabled={loading || (passwordStrength?.strength ?? 0) < 3}
               className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Creating Account...' : 'Create Account'}
             </Button>
+            
+            {/* TERMS & PRIVACY DISCLAIMER */}
+            <p className="text-xs text-center text-gray-600 px-4">
+              By creating an account, you agree to our{' '}
+              <Link href="/terms" className="underline hover:text-gray-400">Terms</Link> and{' '}
+              <Link href="/privacy" className="underline hover:text-gray-400">Privacy Policy</Link>.
+            </p>
 
             <Button
               type="button"
@@ -296,7 +357,9 @@ export default function SignUpPage() {
   )
 }
 
-// Helper component for password requirements
+// ==========================================
+// HELPER COMPONENTS
+// ==========================================
 function RequirementCheck({ met, text }: { met: boolean; text: string }) {
   return (
     <div className={`flex items-center gap-2 ${met ? 'text-green-500' : 'text-gray-500'}`}>
@@ -307,5 +370,5 @@ function RequirementCheck({ met, text }: { met: boolean; text: string }) {
       )}
       <span>{text}</span>
     </div>
-  )
+  );
 }

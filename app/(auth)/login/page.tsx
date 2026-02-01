@@ -8,10 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { Eye, EyeOff, Lock, AlertCircle } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 export default function LoginPage() {
   const router = useRouter()
-  const supabase = createClient()
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -21,14 +21,29 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setLoading(true)
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-    if (error) {
-      setError(error.message)
+    setError(null)
+    
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      
+      if (error) throw error
+    } catch (err: unknown) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'message' in err &&
+        typeof (err as { message?: unknown }).message === 'string'
+      ) {
+        setError((err as { message: string }).message)
+      } else {
+        setError('Failed to initialize authentication.')
+      }
       setLoading(false)
     }
   }
@@ -38,16 +53,33 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    if (error) {
-      setError(error.message)
+      if (error) {
+        throw error
+      } else {
+        // PRODUCTION NOTE: Redirect to dashboard. 
+        // Middleware should handle redirecting to /onboarding if the user is new.
+        router.push('/dashboard')
+        router.refresh()
+      }
+    } catch (err: unknown) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'message' in err &&
+        typeof (err as { message?: unknown }).message === 'string'
+      ) {
+        setError((err as { message: string }).message)
+      } else {
+        setError('Invalid email or password.')
+      }
       setLoading(false)
-    } else {
-      router.push('/onboarding')
     }
   }
 
@@ -58,7 +90,13 @@ export default function LoginPage() {
         <p className="text-lg text-ascent-gray">Continue your ascent</p>
       </div>
 
-      <form onSubmit={handleEmailLogin} className="space-y-4">
+      <motion.form 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        onSubmit={handleEmailLogin} 
+        className="space-y-4"
+      >
         {error && (
           <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/50 text-red-400 text-sm flex items-start gap-2">
             <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
@@ -75,14 +113,25 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             required
             className="bg-gray-900 border-gray-700 text-white focus:border-ascent-blue"
+            placeholder="pilot@ascentledger.com"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-white flex items-center gap-2">
-            <Lock className="w-4 h-4" />
-            Password
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password" className="text-white flex items-center gap-2">
+              <Lock className="w-4 h-4" />
+              Password
+            </Label>
+            {/* FUTURE FEATURE: Forgot Password Link */}
+            <Link 
+              href="/forgot-password" 
+              className="text-xs text-ascent-blue hover:text-ascent-purple transition-colors"
+            >
+              Forgot password?
+            </Link>
+          </div>
+          
           <div className="relative">
             <Input
               id="password"
@@ -91,6 +140,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               className="bg-gray-900 border-gray-700 text-white pr-10 focus:border-ascent-blue"
+              placeholder="••••••••"
             />
             <button
               type="button"
@@ -120,7 +170,7 @@ export default function LoginPage() {
             <span className="w-full border-t border-gray-700" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-ascent-black px-2 text-gray-500">Or</span>
+            <span className="bg-ascent-black px-2 text-gray-500">Or continue with</span>
           </div>
         </div>
 
@@ -131,9 +181,9 @@ export default function LoginPage() {
           variant="outline"
           className="w-full h-12 border-gray-700 text-white hover:bg-gray-900"
         >
-          Continue with Google
+          Google
         </Button>
-      </form>
+      </motion.form>
 
       <p className="text-center text-sm text-gray-500">
         Don&apos;t have an account?{' '}
