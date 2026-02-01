@@ -3,6 +3,7 @@
 // THE ORCHESTRATOR: Sync Strategic Logs to FalkorDB
 // Role: Coordinates graph updates when user submits a log
 // Phase: Sprint 3, Checkpoint 3
+// FIXED: Corrected fog detection regex logic
 // ============================================
 
 import { extractTopicsFromLog, extractFallbackTopics } from '@/lib/ai/topic-extraction';
@@ -172,24 +173,55 @@ export async function syncLogToGraph(data: LogSyncData): Promise<LogSyncResult> 
     // ============================================
     try {
       const userFog = await getUserFog(data.userId);
-      
-      if (userFog) {
-        const fogName = userFog.name.toLowerCase();
+    
+      if (userFog?.name) {
+        // 🔒 Normalize fog name safely - strip quotes and normalize
+        const rawFogName = userFog.name
+          .replace(/^"+|"+$/g, '') // strip accidental quotes
+          .toLowerCase()
+          .trim();
+    
+        // Convert both content and fog term to lowercase for case-insensitive matching
         const contentLower = combinedContent.toLowerCase();
+    
+        // CRITICAL FIX: Iterative stemming to get the TRUE root
+        // "micromanagement" -> "micromanag" -> "microman" (removes "ment" then "ag")
+        // This ensures we match ALL variants: micromanage, micromanaging, micromanagement, etc.
+        let fogRoot = rawFogName;
+        let prevRoot = '';
         
-        // Check if anti-goal is mentioned in the log
-        if (contentLower.includes(fogName)) {
-          // Count occurrences
-          const mentionCount = (contentLower.match(new RegExp(fogName, 'g')) || []).length;
-          
+        // Keep removing suffixes until no more can be removed
+        while (fogRoot !== prevRoot) {
+          prevRoot = fogRoot;
+          fogRoot = fogRoot.replace(/(ing|ment|ement|age|tion|sion|ness|ful|less|able|ible|al|ial|ed|er|or|en|est|ly|ity|ty|ive|ative|ive|y|e|s)$/i, '');
+        }
+        
+        // Ensure minimum root length to avoid false positives
+        if (fogRoot.length < 3) {
+          fogRoot = rawFogName.substring(0, Math.min(6, rawFogName.length));
+        }
+    
+        // Build regex pattern to match the fog root with word boundaries
+        // This catches: micromanage, micromanaging, micromanagement, micromanaged, etc.
+        const fogPattern = new RegExp(`\\b${fogRoot}\\w*\\b`, 'gi');
+    
+        // Find all matches in the content
+        const matches = contentLower.match(fogPattern);
+    
+        if (matches && matches.length > 0) {
           // Create SLIDING_INTO relationship
-          await createSlidingIntoRel(data.logId, fogName, {
+          await createSlidingIntoRel(data.logId, rawFogName, {
             detectedAt: new Date().toISOString(),
-            mentionCount,
+            mentionCount: matches.length,
           });
-          
+    
           result.fogDetected = true;
-          console.warn(`⚠️ [GraphSync] FOG DETECTED: User mentioned "${fogName}" ${mentionCount}x`);
+          console.warn(
+            `⚠️ [GraphSync] FOG DETECTED: "${rawFogName}" (root: "${fogRoot}") mentioned ${matches.length}x (matches: ${matches.join(', ')})`
+          );
+        } else {
+          // Debug logging when no match found
+          console.log(`[GraphSync] No fog match - root: "${fogRoot}", pattern: ${fogPattern}, content length: ${contentLower.length}`);
         }
       }
     } catch (error) {

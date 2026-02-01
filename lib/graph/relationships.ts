@@ -3,7 +3,7 @@
 // THE CONNECTOR: Relationship Creation Functions
 // Role: Create edges between graph nodes
 // Phase: Sprint 3, Checkpoint 2
-// FIXED: FalkorDB uses string interpolation
+// FIXED: FalkorDB uses string interpolation + Fixed SLIDING_INTO to not re-normalize fog name
 // ============================================
 
 import { executeQuery } from './falkordb-client';
@@ -150,8 +150,11 @@ export async function createBuildsTowardRel(
  * (Log)-[:SLIDING_INTO]->(Fog)
  * DANGER SIGNAL: User mentioned their anti-goal in a log
  * 
+ * CRITICAL FIX: The fogName parameter is ALREADY normalized when passed from sync-log.ts
+ * We should NOT normalize it again here, or we'll fail to match the existing Fog node
+ * 
  * @param logId - Log UUID
- * @param fogName - Fog node name
+ * @param fogName - Fog node name (already normalized/lowercased)
  * @param props - Relationship properties
  */
 export async function createSlidingIntoRel(
@@ -159,10 +162,11 @@ export async function createSlidingIntoRel(
   fogName: string,
   props: SlidingIntoRel
 ): Promise<void> {
-  const normalizedName = fogName.toLowerCase();
+  // CRITICAL: Do NOT normalize again - use fogName as-is since it's already normalized
+  // The fog node was created with normalized name in createEscapingRel
   const query = `
     MATCH (l:Log {id: '${escapeString(logId)}'})
-    MATCH (f:Fog {name: '${escapeString(normalizedName)}'})
+    MATCH (f:Fog {name: '${escapeString(fogName)}'})
     CREATE (l)-[r:${REL_TYPES.SLIDING_INTO} {
       detectedAt: '${escapeString(props.detectedAt)}',
       mentionCount: ${props.mentionCount}
@@ -218,7 +222,7 @@ export async function countRelationships(relType: string): Promise<number> {
   }
 
   const row = (result.data[0] as unknown) as Record<string, unknown>;
-        return row.count as number;
+  return row.count as number;
 }
 
 /**
