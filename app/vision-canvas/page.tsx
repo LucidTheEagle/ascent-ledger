@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import { BackgroundBeams } from '@/components/ui/background-beams'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -132,6 +133,7 @@ export default function VisionCanvasPage() {
 
   return (
     <div className="min-h-screen bg-ascent-black text-white flex items-center justify-center p-4">
+      <BackgroundBeams className="opacity-30" />
       <div className="w-full max-w-2xl space-y-8">
         {/* Header */}
         <motion.div
