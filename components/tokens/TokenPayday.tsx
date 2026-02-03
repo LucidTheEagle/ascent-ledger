@@ -16,6 +16,10 @@ interface TokenPaydayProps {
   logId: string;
   /** Duration in milliseconds before auto-advance */
   duration?: number;
+  amount: number;
+  description: string;
+  icon: string;
+  subtitle: string;
 }
 
 export default function TokenPayday({

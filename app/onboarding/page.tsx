@@ -1,9 +1,11 @@
+// app/onboarding/page.tsx
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
-import { Target, Shield, ArrowRight } from 'lucide-react'
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { BackgroundBeams } from "@/components/ui/background-beams";
+import { Target, Shield, ArrowRight } from 'lucide-react';
 
 export default function OnboardingFork() {
   const router = useRouter()
@@ -19,6 +21,7 @@ export default function OnboardingFork() {
 
   return (
     <div className="min-h-screen bg-ascent-black text-white flex items-center justify-center p-4 relative overflow-hidden">
+      <BackgroundBeams className="opacity-30" />
       
       {/* Subtle Background Glow Effect */}
       <div 
@@ -95,7 +98,7 @@ export default function OnboardingFork() {
             {/* Content */}
             <div className="space-y-3">
               <h3 className="text-2xl font-semibold text-white group-hover:text-ascent-blue transition-colors">
-                I'm ready to build my vision
+                I&apos;m ready to build my vision
               </h3>
               <p className="text-ascent-gray group-hover:text-gray-300 transition-colors">
                 Clear mental space, thinking ahead

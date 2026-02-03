@@ -2,6 +2,7 @@
 // app/dashboard/page.tsx
 // DASHBOARD: User's command center
 // Updated for Sprint 2: Shows latest log + Fog Check
+// Updated for Sprint 3 Checkpoint 7: Recovery Mode support
 // ============================================
 
 import { redirect } from 'next/navigation';
@@ -11,6 +12,9 @@ import { Sparkles, Target, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { getCurrentWeekStartDate, getAscentWeek } from '@/lib/utils/week-calculator';
+import { RecoveryDashboard } from '@/components/dashboard/RecoveryDashboard';
+
+// NOTE: RecoveryDashboard import removed to avoid module-not-found error.
 
 export default async function DashboardPage() {
   // ============================================
@@ -24,7 +28,27 @@ export default async function DashboardPage() {
   }
 
   // ============================================
-  // 2. CHECK VISION CANVAS
+  // 2. CHECK OPERATING MODE (NEW - CHECKPOINT 7)
+  // ============================================
+  const userProfile = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: {
+      operatingMode: true,
+      tokenBalance: true,
+      currentStreak: true,
+      longestStreak: true,
+      fullName: true,
+      createdAt: true,
+    },
+  });
+
+  // IF RECOVERY MODE, SHOW RECOVERY DASHBOARD
+  if (userProfile?.operatingMode === 'RECOVERY') {
+    return <RecoveryDashboard />;
+  }
+
+  // ============================================
+  // 3. VISION TRACK - CHECK VISION CANVAS
   // ============================================
   const visionCanvas = await prisma.visionCanvas.findFirst({
     where: {
@@ -39,24 +63,13 @@ export default async function DashboardPage() {
   }
 
   // ============================================
-  // 3. FETCH USER DATA
+  // 4. FETCH ADDITIONAL DATA (Vision Track)
   // ============================================
-  const userData = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: {
-      tokenBalance: true,
-      currentStreak: true,
-      longestStreak: true,
-      fullName: true,
-      createdAt: true,
-    },
-  });
-
-  const currentWeek = getAscentWeek(userData?.createdAt || new Date());
+  const currentWeek = getAscentWeek(userProfile?.createdAt || new Date());
   const weekStartDate = getCurrentWeekStartDate();
 
   // ============================================
-  // 4. CHECK IF USER LOGGED THIS WEEK
+  // 5. CHECK IF USER LOGGED THIS WEEK
   // ============================================
   const thisWeeksLog = await prisma.strategicLog.findFirst({
     where: {
@@ -72,7 +85,7 @@ export default async function DashboardPage() {
   });
 
   // ============================================
-  // 5. CALCULATE STATS
+  // 6. CALCULATE STATS
   // ============================================
   const totalLogs = await prisma.strategicLog.count({
     where: { userId: user.id },
@@ -83,7 +96,7 @@ export default async function DashboardPage() {
     : 0;
 
   // ============================================
-  // 6. RENDER DASHBOARD
+  // 7. RENDER VISION TRACK DASHBOARD
   // ============================================
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-4 md:p-8">
@@ -93,7 +106,7 @@ export default async function DashboardPage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-white">
-              Clear Sky{userData?.fullName ? `, ${userData.fullName.split(' ')[0]}` : ''}.
+              Clear Sky{userProfile?.fullName ? `, ${userProfile.fullName.split(' ')[0]}` : ''}.
             </h1>
             <p className="text-gray-400 mt-1">
               Week {currentWeek} of your ascent
@@ -105,14 +118,14 @@ export default async function DashboardPage() {
             {/* Token Balance */}
             <div className="px-4 py-3 rounded-lg bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/20">
               <p className="text-xs text-amber-400/70 uppercase tracking-wide">Tokens</p>
-              <p className="text-2xl font-bold text-amber-400">{userData?.tokenBalance || 0}</p>
+              <p className="text-2xl font-bold text-amber-400">{userProfile?.tokenBalance || 0}</p>
             </div>
             
             {/* Streak */}
             <div className="px-4 py-3 rounded-lg bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20">
               <p className="text-xs text-orange-400/70 uppercase tracking-wide">Streak</p>
               <p className="text-2xl font-bold text-orange-400">
-                {userData?.currentStreak || 0} 🔥
+                {userProfile?.currentStreak || 0} 🔥
               </p>
             </div>
           </div>
@@ -228,7 +241,7 @@ export default async function DashboardPage() {
             <div className="p-4 rounded-lg bg-white/5">
               <p className="text-sm text-gray-500 mb-1">Current Streak</p>
               <p className="text-3xl font-bold text-orange-400">
-                {userData?.currentStreak || 0} 🔥
+                {userProfile?.currentStreak || 0} 🔥
               </p>
               <p className="text-xs text-gray-600 mt-1">
                 Consecutive weeks
@@ -239,7 +252,7 @@ export default async function DashboardPage() {
             <div className="p-4 rounded-lg bg-white/5">
               <p className="text-sm text-gray-500 mb-1">Longest Streak</p>
               <p className="text-3xl font-bold text-white">
-                {userData?.longestStreak || 0}
+                {userProfile?.longestStreak || 0}
               </p>
               <p className="text-xs text-gray-600 mt-1">
                 Personal best
@@ -256,7 +269,7 @@ export default async function DashboardPage() {
             </div>
           )}
 
-          {totalLogs > 0 && userData?.currentStreak === 0 && (
+          {totalLogs > 0 && userProfile?.currentStreak === 0 && (
             <div className="pt-4 border-t border-white/10">
               <p className="text-sm text-amber-500">
                 ⚠️ Your streak broke. Log this week to restart your chain.
@@ -264,10 +277,10 @@ export default async function DashboardPage() {
             </div>
           )}
 
-          {(userData?.currentStreak || 0) >= 4 && (
+          {(userProfile?.currentStreak || 0) >= 4 && (
             <div className="pt-4 border-t border-white/10">
               <p className="text-sm text-green-400">
-                🎉 {Math.floor((userData?.currentStreak || 0) / 4)} Life Line{Math.floor((userData?.currentStreak || 0) / 4) > 1 ? 's' : ''} earned from your consistency!
+                🎉 {Math.floor((userProfile?.currentStreak || 0) / 4)} Life Line{Math.floor((userProfile?.currentStreak || 0) / 4) > 1 ? 's' : ''} earned from your consistency!
               </p>
             </div>
           )}

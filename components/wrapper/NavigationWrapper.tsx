@@ -11,13 +11,15 @@ export function NavigationWrapper() {
     "/sign-up", 
     "/login", 
     "/auth/verify-email", 
+    "/forgot-password",
     "/onboarding",
     "/dashboard",
     "/fog-triage",
     "/vision-canvas",
     "/crisis-triage",
     "/log/new",
-    "/log/fog-check"
+    "/log/fog-check",
+    "/recovery-checkin",
   ];
 
   // Check if current path starts with any of the hidden paths
