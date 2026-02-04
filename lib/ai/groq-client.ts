@@ -2,13 +2,13 @@
 // lib/ai/groq-client.ts
 // THE VOICE: Groq API Client for Fog Check Generation
 // Uses Llama 3.3 70B for strategic insights
-// FINAL VERSION: With enhanced error handling
+// UPDATED: Fixed return type (no fogCheckType in base response)
 // ============================================
 
 import Groq from 'groq-sdk';
 
 // Initialize Groq client
-const groq = new Groq({
+export const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
@@ -18,7 +18,7 @@ const groq = new Groq({
  * 
  * @param systemPrompt - The full prompt with context
  * @param options - Generation configuration
- * @returns Parsed JSON response
+ * @returns Parsed JSON response (observation + strategicQuestion only)
  * @throws Error if API fails (caller handles gracefully)
  */
 export async function generateFogCheck(
@@ -230,4 +230,4 @@ export const GROQ_CONFIG = {
   MAX_TOKENS: 8000, // Model context window
   DEFAULT_TEMPERATURE: 0.7,
   DEFAULT_MAX_TOKENS: 500,
-} as const;
+} as const
