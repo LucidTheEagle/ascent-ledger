@@ -1,9 +1,10 @@
-// app/api/recovery-checkin/route.ts
+// app/api/recovery-checkin/route.ts (FIXED - Correct function signatures)
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { awardTokens } from "@/lib/services/token-service";
 import { getWeekOf } from "@/lib/utils/week-calculator";
+import { generateCrisisFogCheck, saveFogCheckToDB } from "@/lib/services/fog-check-service";
 
 export async function POST(req: NextRequest) {
   try {
@@ -106,11 +107,38 @@ export async function POST(req: NextRequest) {
       amount: 50,
       description: "Recovery Check-in",
       relatedEntityId: checkin.id,
-      transactionType: "RECOVERY_CHECKIN", // Use correct type from allowed values
+      transactionType: "RECOVERY_CHECKIN", // Correct transaction type
     });
 
+    // ============================================
+    // NEW: Auto-generate Crisis Fog Check
+    // ============================================
+    let fogCheck = null;
+    try {
+      // Generate Crisis Fog Check
+      const fogCheckResult = await generateCrisisFogCheck(
+        user.id,
+        protocolId
+      );
+
+      // Save to database using new signature
+      const fogCheckId = await saveFogCheckToDB(
+        user.id,
+        fogCheckResult,
+        undefined // No logId for Crisis fog checks
+      );
+
+      fogCheck = {
+        id: fogCheckId,
+        observation: fogCheckResult.observation,
+        strategicQuestion: fogCheckResult.strategicQuestion,
+      };
+    } catch (fogCheckError) {
+      // Log error but don't fail the check-in
+      console.error("[CRISIS_FOG_CHECK_ERROR]", fogCheckError);
+    }
+
     // Check if user is stable (3+ weeks at oxygen level 6+)
-    // and offer transition to Vision Track
     const recentCheckins = await prisma.recoveryCheckin.findMany({
       where: {
         userId: user.id,
@@ -134,6 +162,7 @@ export async function POST(req: NextRequest) {
         weekOf: checkin.weekOf,
         oxygenLevelCurrent: checkin.oxygenLevelCurrent,
       },
+      fogCheck, // Include generated fog check
       isStable,
     });
   } catch (error) {
@@ -145,7 +174,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET endpoint to retrieve check-in history
+// GET endpoint remains the same
 export async function GET(req: NextRequest) {
   try {
     const supabase = await createClient();

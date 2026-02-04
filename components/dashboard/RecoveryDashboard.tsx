@@ -1,11 +1,11 @@
-// components/dashboard/RecoveryDashboard.tsx
+// components/dashboard/RecoveryDashboard.tsx (FINAL - All fixes)
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, CheckCircle, Circle, Calendar, TrendingUp } from "lucide-react";
+import { Shield, CheckCircle, Circle, Calendar, TrendingUp, AlertCircle, Check } from "lucide-react";
 
 interface CrisisProtocol {
   id: string;
@@ -20,6 +20,12 @@ interface CrisisProtocol {
     weekOf: string;
     oxygenLevelCurrent: number;
   } | null;
+  latestFogCheck?: {
+    id: string;
+    observation: string;
+    strategicQuestion: string;
+    createdAt: string;
+  } | null;
 }
 
 export function RecoveryDashboard() {
@@ -27,12 +33,19 @@ export function RecoveryDashboard() {
   const [protocol, setProtocol] = useState<CrisisProtocol | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [weeksSinceStart, setWeeksSinceStart] = useState(0);
+  const [hasLoggedThisWeek, setHasLoggedThisWeek] = useState(false);
 
-  useEffect(() => {
-    fetchProtocol();
+  // Get Monday of current week
+  const getWeekStart = useCallback((date: Date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(d.setDate(diff));
+    monday.setHours(0, 0, 0, 0);
+    return monday;
   }, []);
 
-  const fetchProtocol = async () => {
+  const fetchProtocol = useCallback(async () => {
     try {
       const response = await fetch("/api/crisis-protocol");
       const data = await response.json();
@@ -46,14 +59,25 @@ export function RecoveryDashboard() {
         const weeks = Math.floor(
           (now.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000)
         );
-        setWeeksSinceStart(weeks + 1); // Add 1 to count current week
+        setWeeksSinceStart(weeks + 1);
+
+        // Check if logged this week
+        if (data.protocol.latestCheckin) {
+          const checkinDate = new Date(data.protocol.latestCheckin.weekOf);
+          const currentWeekStart = getWeekStart(now);
+          setHasLoggedThisWeek(checkinDate >= currentWeekStart);
+        }
       }
     } catch (error) {
       console.error("Error fetching protocol:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getWeekStart]);
+
+  useEffect(() => {
+    fetchProtocol();
+  }, [fetchProtocol]);
 
   const getCrisisTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
@@ -79,6 +103,41 @@ export function RecoveryDashboard() {
     if (level >= 5) return "text-amber-500";
     if (level >= 3) return "text-orange-500";
     return "text-red-500";
+  };
+
+  const handleTransitionToVision = async () => {
+    if (!protocol) return;
+
+    try {
+      // Mark protocol as complete
+      await fetch("/api/crisis-protocol", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          protocolId: protocol.id,
+          completedAt: new Date().toISOString(),
+        }),
+      });
+
+      // Switch user to ASCENT mode
+      await fetch("/api/user/mode", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          operatingMode: "ASCENT",
+        }),
+      });
+
+      // Navigate to vision canvas
+      router.push("/vision-canvas");
+    } catch (error) {
+      console.error("Error transitioning to vision:", error);
+    }
+  };
+
+  const handleStayInRecovery = () => {
+    // User chose to keep recovering - just refresh to show confirmation
+    window.location.reload();
   };
 
   if (isLoading) {
@@ -128,6 +187,51 @@ export function RecoveryDashboard() {
           Active Crisis: {getCrisisTypeLabel(protocol.crisisType)}
         </p>
       </Card>
+
+      {/* Crisis Surgeon Assessment */}
+      {protocol.latestFogCheck && (
+        <Card className="p-6 bg-red-500/5 border-red-500/20">
+          <div className="flex items-start gap-3 mb-4">
+            <AlertCircle className="h-6 w-6 text-red-400 shrink-0 mt-1" />
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-white mb-1">
+                Crisis Surgeon Assessment
+              </h3>
+              <p className="text-xs text-gray-500 mb-3">
+                {new Date(protocol.latestFogCheck.createdAt).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </p>
+              
+              {/* Explainer */}
+              <div className="mb-4 p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                <p className="text-sm text-gray-400">
+                  <strong className="text-red-400">Emergency Room Doctor</strong> — 
+                  Tactical, directive feedback focused on survival. 
+                  No philosophy. No 5-year plans. Just: stop the bleeding.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-red-400 font-semibold mb-2">Clinical Observation:</p>
+              <p className="text-gray-300 leading-relaxed">
+                {protocol.latestFogCheck.observation}
+              </p>
+            </div>
+
+            <div className="pt-4 border-t border-white/10">
+              <p className="text-sm text-red-400 font-semibold mb-2">Immediate Directive:</p>
+              <p className="text-white font-medium">
+                {protocol.latestFogCheck.strategicQuestion}
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Your Protocol */}
       <Card className="p-6 bg-ascent-obsidian/80 backdrop-blur-sm border border-white/10">
@@ -212,14 +316,37 @@ export function RecoveryDashboard() {
           This Week&apos;s Check-In
         </h2>
 
-        <p className="text-gray-400 mb-4">How are your oxygen levels?</p>
-
-        <Button
-          onClick={() => router.push(`/recovery-checkin?protocolId=${protocol.id}`)}
-          className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-        >
-          Log Check-In →
-        </Button>
+        {hasLoggedThisWeek ? (
+          // Already logged this week
+          <div className="text-center py-4 space-y-3">
+            <div className="flex items-center justify-center gap-2 text-green-500">
+              <Check className="h-5 w-5" />
+              <p className="font-medium">Check-in completed for this week</p>
+            </div>
+            <p className="text-sm text-gray-400">
+              You logged your oxygen levels on{' '}
+              {protocol.latestCheckin && new Date(protocol.latestCheckin.weekOf).toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'short',
+                day: 'numeric',
+              })}
+            </p>
+            <p className="text-xs text-gray-500">
+              Come back next week to log again.
+            </p>
+          </div>
+        ) : (
+          // Not logged yet
+          <>
+            <p className="text-gray-400 mb-4">How are your oxygen levels?</p>
+            <Button
+              onClick={() => router.push(`/recovery-checkin?protocolId=${protocol.id}`)}
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+            >
+              Log Check-In →
+            </Button>
+          </>
+        )}
       </Card>
 
       {/* Recovery Tracker */}
@@ -269,12 +396,13 @@ export function RecoveryDashboard() {
           </p>
           <div className="flex gap-3">
             <Button
-              onClick={() => router.push("/vision-canvas")}
+              onClick={handleTransitionToVision}
               className="bg-green-500 hover:bg-green-600"
             >
               I&apos;m Ready - Build My Vision
             </Button>
             <Button
+              onClick={handleStayInRecovery}
               variant="outline"
               className="border-green-500/50 text-green-400 hover:bg-green-500/10"
             >

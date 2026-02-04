@@ -1,4 +1,4 @@
-// app/api/crisis-protocol/route.ts
+// app/api/crisis-protocol/route.ts (UPDATED - Include Fog Check)
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
@@ -8,7 +8,6 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // Check authentication
     const {
       data: { user },
       error: authError,
@@ -18,19 +17,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Parse request body
     const body = await req.json();
     const { crisisType, burdenToCut, oxygenSource } = body;
 
     // Validation
     if (!crisisType || !burdenToCut || !oxygenSource) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "All fields required" },
         { status: 400 }
       );
     }
 
-    if (!["TOXIC_ENV", "BURNOUT", "FINANCIAL", "IMPOSTER"].includes(crisisType)) {
+    // Valid crisis types
+    const validTypes = ["TOXIC_ENV", "BURNOUT", "FINANCIAL", "IMPOSTER"];
+    if (!validTypes.includes(crisisType)) {
       return NextResponse.json(
         { error: "Invalid crisis type" },
         { status: 400 }
@@ -46,7 +46,6 @@ export async function POST(req: NextRequest) {
         oxygenSource,
         isBurdenCut: false,
         isOxygenScheduled: false,
-        oxygenLevelStart: null, // Will be set in first check-in
       },
     });
 
@@ -59,13 +58,13 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Reward tokens for completing crisis triage
+    // Reward tokens
     await awardTokens({
       userId: user.id,
       amount: 100,
+      transactionType: "CRISIS_COMPLETE",
       description: "Completed Crisis Triage",
       relatedEntityId: protocol.id,
-      transactionType: "CRISIS_COMPLETE", // Use valid transactionType per AwardTokensParams
     });
 
     return NextResponse.json({
@@ -73,8 +72,6 @@ export async function POST(req: NextRequest) {
       protocol: {
         id: protocol.id,
         crisisType: protocol.crisisType,
-        burdenToCut: protocol.burdenToCut,
-        oxygenSource: protocol.oxygenSource,
       },
     });
   } catch (error) {
@@ -86,8 +83,8 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET endpoint to retrieve active crisis protocol
-export async function GET(req: NextRequest) {
+// GET endpoint - Fetch active protocol WITH latest fog check
+export async function GET() {
   try {
     const supabase = await createClient();
 
@@ -100,21 +97,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get the most recent active protocol
+    // Fetch active protocol with latest check-in AND fog check
     const protocol = await prisma.crisisProtocol.findFirst({
       where: {
         userId: user.id,
-        completedAt: null, // Only active protocols
+        completedAt: null,
       },
       orderBy: {
         createdAt: "desc",
       },
       include: {
         recoveryCheckins: {
-          orderBy: {
-            weekOf: "desc",
-          },
-          take: 1, // Get latest check-in
+          orderBy: { weekOf: "desc" },
+          take: 1,
         },
       },
     });
@@ -123,17 +118,28 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ protocol: null });
     }
 
+    // Fetch latest fog check for this user
+    const latestFogCheck = await prisma.fogCheck.findFirst({
+      where: {
+        userId: user.id,
+        fogCheckType: "CRISIS",
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        observation: true,
+        strategicQuestion: true,
+        createdAt: true,
+      },
+    });
+
     return NextResponse.json({
       protocol: {
-        id: protocol.id,
-        crisisType: protocol.crisisType,
-        burdenToCut: protocol.burdenToCut,
-        oxygenSource: protocol.oxygenSource,
-        isBurdenCut: protocol.isBurdenCut,
-        isOxygenScheduled: protocol.isOxygenScheduled,
-        oxygenLevelCurrent: protocol.oxygenLevelCurrent,
-        createdAt: protocol.createdAt,
+        ...protocol,
         latestCheckin: protocol.recoveryCheckins[0] || null,
+        latestFogCheck: latestFogCheck || null,
       },
     });
   } catch (error) {
@@ -145,7 +151,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// PATCH endpoint to update protocol status
+// PATCH endpoint - Update protocol status
 export async function PATCH(req: NextRequest) {
   try {
     const supabase = await createClient();
@@ -160,7 +166,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { protocolId, isBurdenCut, isOxygenScheduled, complete } = body;
+    const { protocolId, isBurdenCut, isOxygenScheduled, completedAt } = body;
 
     if (!protocolId) {
       return NextResponse.json(
@@ -170,31 +176,33 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Verify protocol belongs to user
-    const existingProtocol = await prisma.crisisProtocol.findFirst({
+    const protocol = await prisma.crisisProtocol.findFirst({
       where: {
         id: protocolId,
         userId: user.id,
       },
     });
 
-    if (!existingProtocol) {
+    if (!protocol) {
       return NextResponse.json({ error: "Protocol not found" }, { status: 404 });
     }
 
     // Update protocol
-    const updateData: Record<string, unknown> = {};
-    if (typeof isBurdenCut === "boolean") updateData.isBurdenCut = isBurdenCut;
-    if (typeof isOxygenScheduled === "boolean") updateData.isOxygenScheduled = isOxygenScheduled;
-    if (complete) updateData.completedAt = new Date();
-
     const updated = await prisma.crisisProtocol.update({
       where: { id: protocolId },
-      data: updateData,
+      data: {
+        ...(isBurdenCut !== undefined && { isBurdenCut }),
+        ...(isOxygenScheduled !== undefined && { isOxygenScheduled }),
+        ...(completedAt !== undefined && { completedAt: new Date(completedAt) }),
+      },
     });
 
-    return NextResponse.json({ success: true, protocol: updated });
+    return NextResponse.json({
+      success: true,
+      protocol: updated,
+    });
   } catch (error) {
-    console.error("[UPDATE_CRISIS_PROTOCOL_ERROR]", error);
+    console.error("[PATCH_CRISIS_PROTOCOL_ERROR]", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
