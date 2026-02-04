@@ -3,6 +3,7 @@
 // THE ORCHESTRATOR: Assembles context and generates Fog Checks
 // UPDATED: Week 4+ pattern detection from FalkorDB
 // UPDATED: Checkpoint 8 - Crisis Surgeon for Recovery Mode
+// UPDATED: Checkpoint 12 - Tone Adjustment
 // ============================================
 
 import { prisma } from '@/lib/prisma';
@@ -16,6 +17,7 @@ import {
   parseCrisisSurgeonResponse,
   type CrisisContext 
 } from '@/lib/ai/prompts/crisis-surgeon';
+import { buildToneAdjustedPrompt } from '@/lib/ai/prompts/tone-adjuster';
 import { findSimilarLogs, SimilarLog } from '@/lib/db/vector-search';
 import { stringToEmbedding } from '@/lib/ai/embeddings';
 import { getAscentWeek } from '@/lib/utils/week-calculator';
@@ -105,12 +107,13 @@ export async function generateFogCheckForLog(
 
   // 6. Build the prompt (with or without patterns)
   let prompt: string;
+  let patterns;
 
   if (weekNumber >= 4) {
     // Week 4+: Use pattern detection from FalkorDB
     console.log(`[Fog Check] Week ${weekNumber} - Running pattern detection...`);
     
-    const patterns = await detectAllPatterns(
+    patterns = await detectAllPatterns(
       log.userId,
       vision.desiredState,
       4 // Look back 4 weeks
@@ -157,21 +160,37 @@ export async function generateFogCheckForLog(
     );
   }
 
+  // CHECKPOINT 12: Inject tone adjustment BEFORE AI generation
+  const tonePrompt = buildToneAdjustedPrompt(
+    {
+      leverageBuilt: log.leverageBuilt,
+      learnedInsight: log.learnedInsight,
+      opportunitiesCreated: log.opportunitiesCreated,
+      isSurvivalMode: log.isSurvivalMode,
+      hadNoLeverage: log.hadNoLeverage,
+    },
+    weekNumber,
+    patterns?.hasPatterns || false
+  );
+
+  // Prepend tone instruction to prompt
+  prompt = tonePrompt + prompt;
+
   // 7. Generate Fog Check via Groq
-  const fogCheck = await generateFogCheck(prompt, {
+  const fogCheckResponse = await generateFogCheck(prompt, {
     temperature: 0.7,
     maxTokens: 500,
   });
 
   // 8. Validate response
-  if (!fogCheck.observation || !fogCheck.strategicQuestion) {
+  if (!fogCheckResponse.observation || !fogCheckResponse.strategicQuestion) {
     throw new Error('Invalid Fog Check response from AI');
   }
 
   // 9. Return result
   return {
-    observation: fogCheck.observation,
-    strategicQuestion: fogCheck.strategicQuestion,
+    observation: fogCheckResponse.observation,
+    strategicQuestion: fogCheckResponse.strategicQuestion,
     fogCheckType,
   };
 }
