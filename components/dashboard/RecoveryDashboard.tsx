@@ -1,11 +1,11 @@
-// components/dashboard/RecoveryDashboard.tsx (FINAL - All fixes)
+// components/dashboard/RecoveryDashboard.tsx (CHECKPOINT 11 UPDATE)
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, CheckCircle, Circle, Calendar, TrendingUp, AlertCircle, Check } from "lucide-react";
+import { Shield, CheckCircle, Circle, Calendar, TrendingUp, AlertCircle, Check, Sparkles } from "lucide-react";
 
 interface CrisisProtocol {
   id: string;
@@ -28,14 +28,22 @@ interface CrisisProtocol {
   } | null;
 }
 
+interface TransitionEligibility {
+  isEligible: boolean;
+  weeksStable: number;
+  currentOxygenLevel: number;
+  message: string;
+}
+
 export function RecoveryDashboard() {
   const router = useRouter();
   const [protocol, setProtocol] = useState<CrisisProtocol | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [weeksSinceStart, setWeeksSinceStart] = useState(0);
   const [hasLoggedThisWeek, setHasLoggedThisWeek] = useState(false);
+  const [transitionEligibility, setTransitionEligibility] = useState<TransitionEligibility | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // Get Monday of current week
   const getWeekStart = useCallback((date: Date) => {
     const d = new Date(date);
     const day = d.getDay();
@@ -53,7 +61,6 @@ export function RecoveryDashboard() {
       if (data.protocol) {
         setProtocol(data.protocol);
         
-        // Calculate weeks since start
         const start = new Date(data.protocol.createdAt);
         const now = new Date();
         const weeks = Math.floor(
@@ -61,7 +68,6 @@ export function RecoveryDashboard() {
         );
         setWeeksSinceStart(weeks + 1);
 
-        // Check if logged this week
         if (data.protocol.latestCheckin) {
           const checkinDate = new Date(data.protocol.latestCheckin.weekOf);
           const currentWeekStart = getWeekStart(now);
@@ -75,9 +81,20 @@ export function RecoveryDashboard() {
     }
   }, [getWeekStart]);
 
+  const checkTransitionEligibility = useCallback(async () => {
+    try {
+      const response = await fetch("/api/transition");
+      const data = await response.json();
+      setTransitionEligibility(data);
+    } catch (error) {
+      console.error("Error checking transition eligibility:", error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchProtocol();
-  }, [fetchProtocol]);
+    checkTransitionEligibility();
+  }, [fetchProtocol, checkTransitionEligibility]);
 
   const getCrisisTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
@@ -106,37 +123,36 @@ export function RecoveryDashboard() {
   };
 
   const handleTransitionToVision = async () => {
-    if (!protocol) return;
+    if (!protocol || !transitionEligibility?.isEligible) return;
+
+    setIsTransitioning(true);
 
     try {
-      // Mark protocol as complete
-      await fetch("/api/crisis-protocol", {
-        method: "PATCH",
+      const response = await fetch("/api/transition", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           protocolId: protocol.id,
-          completedAt: new Date().toISOString(),
         }),
       });
 
-      // Switch user to ASCENT mode
-      await fetch("/api/user/mode", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          operatingMode: "ASCENT",
-        }),
-      });
+      const data = await response.json();
 
-      // Navigate to vision canvas
-      router.push("/vision-canvas");
+      if (data.success) {
+        // Show success and redirect
+        router.push("/vision-canvas?transitioned=true");
+      } else {
+        alert(data.error || "Failed to transition. Please try again.");
+      }
     } catch (error) {
-      console.error("Error transitioning to vision:", error);
+      console.error("Error transitioning:", error);
+      alert("Failed to transition. Please try again.");
+    } finally {
+      setIsTransitioning(false);
     }
   };
 
   const handleStayInRecovery = () => {
-    // User chose to keep recovering - just refresh to show confirmation
     window.location.reload();
   };
 
@@ -167,6 +183,8 @@ export function RecoveryDashboard() {
       </div>
     );
   }
+
+  const showTransitionOffer = transitionEligibility?.isEligible;
 
   return (
     <div className="space-y-6">
@@ -204,7 +222,6 @@ export function RecoveryDashboard() {
                 })}
               </p>
               
-              {/* Explainer */}
               <div className="mb-4 p-3 bg-red-500/10 rounded-lg border border-red-500/20">
                 <p className="text-sm text-gray-400">
                   <strong className="text-red-400">Emergency Room Doctor</strong> — 
@@ -233,7 +250,7 @@ export function RecoveryDashboard() {
         </Card>
       )}
 
-      {/* Your Protocol */}
+      {/* Protocol Status */}
       <Card className="p-6 bg-ascent-obsidian/80 backdrop-blur-sm border border-white/10">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
           <Shield className="h-5 w-5 text-amber-500" />
@@ -241,7 +258,6 @@ export function RecoveryDashboard() {
         </h2>
 
         <div className="space-y-4">
-          {/* Burden to Cut */}
           <div className="flex items-start gap-3">
             {protocol.isBurdenCut ? (
               <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
@@ -274,7 +290,6 @@ export function RecoveryDashboard() {
             </div>
           </div>
 
-          {/* Oxygen Source */}
           <div className="flex items-start gap-3">
             {protocol.isOxygenScheduled ? (
               <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
@@ -309,7 +324,7 @@ export function RecoveryDashboard() {
         </div>
       </Card>
 
-      {/* This Week's Check-In */}
+      {/* Check-In */}
       <Card className="p-6 bg-ascent-obsidian/80 backdrop-blur-sm border border-white/10">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
           <Calendar className="h-5 w-5 text-blue-500" />
@@ -317,7 +332,6 @@ export function RecoveryDashboard() {
         </h2>
 
         {hasLoggedThisWeek ? (
-          // Already logged this week
           <div className="text-center py-4 space-y-3">
             <div className="flex items-center justify-center gap-2 text-green-500">
               <Check className="h-5 w-5" />
@@ -336,7 +350,6 @@ export function RecoveryDashboard() {
             </p>
           </div>
         ) : (
-          // Not logged yet
           <>
             <p className="text-gray-400 mb-4">How are your oxygen levels?</p>
             <Button
@@ -384,30 +397,35 @@ export function RecoveryDashboard() {
         </div>
       </Card>
 
-      {/* Transition Offer (if stable) */}
-      {protocol.oxygenLevelCurrent !== null && protocol.oxygenLevelCurrent >= 7 && (
-        <Card className="p-6 bg-green-500/10 border-green-500/30">
-          <h3 className="text-lg font-semibold text-green-400 mb-2">
-            Recovery Checkpoint
-          </h3>
-          <p className="text-gray-300 mb-4">
-            You&apos;ve stabilized. Your oxygen levels are holding at {protocol.oxygenLevelCurrent}/10.
-            You&apos;re ready to think beyond this week.
-          </p>
-          <div className="flex gap-3">
-            <Button
-              onClick={handleTransitionToVision}
-              className="bg-green-500 hover:bg-green-600"
-            >
-              I&apos;m Ready - Build My Vision
-            </Button>
-            <Button
-              onClick={handleStayInRecovery}
-              variant="outline"
-              className="border-green-500/50 text-green-400 hover:bg-green-500/10"
-            >
-              Not Yet - Keep Recovering
-            </Button>
+      {/* Transition Offer (Checkpoint 11) */}
+      {showTransitionOffer && (
+        <Card className="p-6 bg-gradient-to-r from-green-500/10 to-blue-500/10 border-green-500/30">
+          <div className="flex items-start gap-4">
+            <Sparkles className="h-8 w-8 text-green-400 shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-green-400 mb-2">
+                Recovery Complete
+              </h3>
+              <p className="text-gray-300 mb-4">
+                {transitionEligibility?.message}
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleTransitionToVision}
+                  disabled={isTransitioning}
+                  className="bg-green-500 hover:bg-green-600"
+                >
+                  {isTransitioning ? 'Transitioning...' : "I'm Ready - Build My Vision (+150 tokens)"}
+                </Button>
+                <Button
+                  onClick={handleStayInRecovery}
+                  variant="outline"
+                  className="border-green-500/50 text-green-400 hover:bg-green-500/10"
+                >
+                  Not Yet - Keep Recovering
+                </Button>
+              </div>
+            </div>
           </div>
         </Card>
       )}
