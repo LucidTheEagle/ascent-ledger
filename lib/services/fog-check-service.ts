@@ -4,6 +4,8 @@
 // UPDATED: Week 4+ pattern detection from FalkorDB
 // UPDATED: Checkpoint 8 - Crisis Surgeon for Recovery Mode
 // UPDATED: Checkpoint 12 - Tone Adjustment
+// UPDATED: Checkpoint 13 - Error Handling & Graceful Degradation
+// FIXED: TypeScript Ghost Schema - Proper PatternDetectionResult typing
 // ============================================
 
 import { prisma } from '@/lib/prisma';
@@ -21,8 +23,9 @@ import { buildToneAdjustedPrompt } from '@/lib/ai/prompts/tone-adjuster';
 import { findSimilarLogs, SimilarLog } from '@/lib/db/vector-search';
 import { stringToEmbedding } from '@/lib/ai/embeddings';
 import { getAscentWeek } from '@/lib/utils/week-calculator';
-import { detectAllPatterns } from '@/lib/graph/patterns';
+import { detectAllPatterns, type PatternDetectionResult } from '@/lib/graph/patterns';
 import { groq } from '@/lib/ai/groq-client';
+import { logError, retryWithBackoff } from '@/lib/utils/error-handler';
 
 interface FogCheckResult {
   observation: string;
@@ -31,17 +34,89 @@ interface FogCheckResult {
 }
 
 // ============================================
-// VISION TRACK FOG CHECK (Original)
+// FIX 1: STRICTLY TYPED EMPTY PATTERN RESULT
 // ============================================
 
 /**
- * Generate a Fog Check for a strategic log
- * Main entry point for Fog Check generation
- * 
- * @param logId - The strategic log ID
- * @returns Generated Fog Check
- * @throws Error if generation fails (caller handles gracefully)
+ * A safe, fully-typed fallback for PatternDetectionResult.
+ * This ensures TypeScript never complains about missing properties
+ * when pattern detection fails or is skipped.
  */
+const EMPTY_PATTERN_RESULT: PatternDetectionResult = {
+  hasPatterns: false,
+  summary: [],
+  learningWithoutAction: { 
+    detected: false, 
+    streakWeeks: 0, 
+    recentLogs: [] 
+  },
+  slidingIntoFog: { 
+    detected: false, 
+    mentionCount: 0, 
+    fogName: "", 
+    recentMentions: [] 
+  },
+  visionMisalignment: { 
+    detected: false, 
+    misalignedLogCount: 0, 
+    visionKeywords: [], 
+    actualTopics: [], 
+    alignmentScore: 1 
+  }
+};
+
+// ============================================
+// CHECKPOINT 13: FALLBACK RESPONSES
+// ============================================
+
+function getFallbackObservation(log: unknown): string {
+  if (
+    typeof log === 'object' &&
+    log !== null &&
+    'isSurvivalMode' in log &&
+    (log as { isSurvivalMode?: boolean }).isSurvivalMode
+  ) {
+    return "You're in survival mode. That's honest. Focus on conservation, not growth. Execute your protocol one step at a time.";
+  }
+
+  if (
+    typeof log === 'object' &&
+    log !== null &&
+    'hadNoLeverage' in log &&
+    (log as { hadNoLeverage?: boolean }).hadNoLeverage
+  ) {
+    return "No leverage built. That's honest reporting. Reflect on what blocked execution—was it external or internal?";
+  }
+
+  return "You logged your work this week. Leverage compounds over time. Keep building consistently.";
+}
+
+function getFallbackQuestion(log: unknown): string {
+  if (
+    typeof log === 'object' &&
+    log !== null &&
+    'isSurvivalMode' in log &&
+    (log as { isSurvivalMode?: boolean }).isSurvivalMode
+  ) {
+    return "What's one small action you can take this week to create breathing room?";
+  }
+
+  if (
+    typeof log === 'object' &&
+    log !== null &&
+    'hadNoLeverage' in log &&
+    (log as { hadNoLeverage?: boolean }).hadNoLeverage
+  ) {
+    return "What blocked you from building leverage this week—fire drill or analysis paralysis?";
+  }
+
+  return "What leverage will you build next week?";
+}
+
+// ============================================
+// VISION TRACK FOG CHECK (FIXED VERSION)
+// ============================================
+
 export async function generateFogCheckForLog(
   logId: string
 ): Promise<FogCheckResult> {
@@ -99,30 +174,56 @@ export async function generateFogCheckForLog(
         limit: 3,
         minSimilarity: 0.6,
       });
-    } catch (error) {
-      console.warn('[Fog Check] Embedding search failed:', error);
+    } catch (embeddingError) {
+      console.warn('[Fog Check] Embedding search failed:', embeddingError);
       // Continue without similar logs (not critical)
     }
   }
 
-  // 6. Build the prompt (with or without patterns)
+  // ============================================
+  // FIX 2: INITIALIZE WITH SAFE DEFAULT
+  // patterns is NEVER undefined now
+  // ============================================
+  
   let prompt: string;
-  let patterns;
+  let patterns: PatternDetectionResult = EMPTY_PATTERN_RESULT;
 
   if (weekNumber >= 4) {
     // Week 4+: Use pattern detection from FalkorDB
     console.log(`[Fog Check] Week ${weekNumber} - Running pattern detection...`);
     
-    patterns = await detectAllPatterns(
-      log.userId,
-      vision.desiredState,
-      4 // Look back 4 weeks
-    );
+    try {
+      // CHECKPOINT 13: Timeout protection (5 seconds)
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Pattern detection timeout')), 5000)
+      );
 
-    if (patterns.hasPatterns) {
-      console.log(`[Fog Check] Patterns detected:`, patterns.summary);
+      // FIX 3: Type assertion for Promise.race result
+      const result = await Promise.race([
+        detectAllPatterns(log.userId, vision.desiredState, 4),
+        timeoutPromise
+      ]) as PatternDetectionResult;
+
+      patterns = result;
+
+      if (patterns.hasPatterns) {
+        console.log(`[Fog Check] Patterns detected:`, patterns.summary);
+      }
+    } catch (patternError) {
+      // FIX 4: Graceful degradation with typed constant
+      console.warn('[Fog Check] Pattern detection failed, continuing without patterns');
+      logError(patternError, {
+        service: 'FalkorDB',
+        operation: 'Pattern Detection',
+        userId: log.userId,
+        additionalData: { weekNumber, logId },
+      });
+
+      // Use the safe constant instead of empty object/array
+      patterns = EMPTY_PATTERN_RESULT;
     }
 
+    // FIX 5: patterns is guaranteed to be PatternDetectionResult (never undefined)
     prompt = buildPatternHunterPromptWithPatterns(
       {
         visionStatement: vision.aiSynthesis,
@@ -137,7 +238,7 @@ export async function generateFogCheckForLog(
         hadNoLeverage: log.hadNoLeverage,
       },
       weekNumber,
-      patterns,
+      patterns, // No TypeScript errors here anymore
       similarLogs
     );
   } else {
@@ -170,17 +271,44 @@ export async function generateFogCheckForLog(
       hadNoLeverage: log.hadNoLeverage,
     },
     weekNumber,
-    patterns?.hasPatterns || false
+    patterns.hasPatterns // Safe to access - patterns is always defined
   );
 
   // Prepend tone instruction to prompt
   prompt = tonePrompt + prompt;
 
-  // 7. Generate Fog Check via Groq
-  const fogCheckResponse = await generateFogCheck(prompt, {
-    temperature: 0.7,
-    maxTokens: 500,
-  });
+  // 7. Generate Fog Check via Groq WITH RETRY LOGIC (Checkpoint 13)
+  let fogCheckResponse;
+
+  try {
+    fogCheckResponse = await retryWithBackoff(
+      async () => {
+        return await generateFogCheck(prompt, {
+          temperature: 0.7,
+          maxTokens: 500,
+        });
+      },
+      {
+        maxRetries: 3,
+        delayMs: 1000,
+        exponentialBackoff: true,
+      }
+    );
+  } catch (fogCheckError) {
+    // CHECKPOINT 13: Fallback - Use generic response
+    console.error('[Fog Check] AI generation failed after retries, using fallback');
+    logError(fogCheckError, {
+      service: 'Groq',
+      operation: 'Fog Check Generation',
+      userId: log.userId,
+      additionalData: { weekNumber, logId },
+    });
+
+    fogCheckResponse = {
+      observation: getFallbackObservation(log),
+      strategicQuestion: getFallbackQuestion(log),
+    };
+  }
 
   // 8. Validate response
   if (!fogCheckResponse.observation || !fogCheckResponse.strategicQuestion) {
@@ -196,16 +324,9 @@ export async function generateFogCheckForLog(
 }
 
 // ============================================
-// RECOVERY TRACK FOG CHECK (NEW - Checkpoint 8)
+// RECOVERY TRACK FOG CHECK (Checkpoint 8)
 // ============================================
 
-/**
- * Generate Crisis Surgeon Fog Check for Recovery Mode
- * 
- * @param userId - User ID
- * @param protocolId - Crisis protocol ID
- * @returns Generated Crisis Fog Check
- */
 export async function generateCrisisFogCheck(
   userId: string,
   protocolId: string
@@ -249,24 +370,33 @@ export async function generateCrisisFogCheck(
   // 4. Generate Crisis Surgeon prompt
   const systemPrompt = getCrisisSurgeonPrompt(crisisContext);
 
-  // 5. Call Groq API
+  // 5. Call Groq API WITH RETRY (Checkpoint 13)
   try {
-    const response = await groq.chat.completions.create({
-      model: 'llama-3.1-70b-versatile',
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt,
-        },
-        {
-          role: 'user',
-          content: 'Generate the Crisis Fog Check based on the context provided.',
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 500,
-      response_format: { type: 'json_object' },
-    });
+    const response = await retryWithBackoff(
+      async () => {
+        return await groq.chat.completions.create({
+          model: 'llama-3.1-70b-versatile',
+          messages: [
+            {
+              role: 'system',
+              content: systemPrompt,
+            },
+            {
+              role: 'user',
+              content: 'Generate the Crisis Fog Check based on the context provided.',
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 500,
+          response_format: { type: 'json_object' },
+        });
+      },
+      {
+        maxRetries: 3,
+        delayMs: 1000,
+        exponentialBackoff: true,
+      }
+    );
 
     const content = response.choices[0]?.message?.content;
 
@@ -281,8 +411,14 @@ export async function generateCrisisFogCheck(
       strategicQuestion: crisisCheck.immediateDirective,
       fogCheckType: 'CRISIS',
     };
-  } catch (error) {
-    console.error('[CRISIS_FOG_CHECK_ERROR]', error);
+  } catch (crisisError) {
+    console.error('[CRISIS_FOG_CHECK_ERROR]', crisisError);
+    logError(crisisError, {
+      service: 'Groq',
+      operation: 'Crisis Fog Check',
+      userId,
+      additionalData: { protocolId, weeksSinceStart },
+    });
 
     // Fallback to generic crisis guidance
     return {
@@ -294,16 +430,9 @@ export async function generateCrisisFogCheck(
 }
 
 // ============================================
-// UNIFIED INTERFACE (NEW)
+// UNIFIED INTERFACE
 // ============================================
 
-/**
- * Generate Fog Check based on user's operating mode
- * Automatically routes to Vision Track or Recovery Track
- * 
- * @param params - Generation parameters
- * @returns Generated Fog Check
- */
 export async function generateFogCheckUnified(params: {
   userId: string;
   logId?: string;
@@ -336,14 +465,6 @@ export async function generateFogCheckUnified(params: {
 // DATABASE OPERATIONS
 // ============================================
 
-/**
- * Save Fog Check to database
- * 
- * @param userId - User ID
- * @param fogCheck - Generated Fog Check
- * @param logId - Strategic log ID (Vision Track only)
- * @returns Created Fog Check ID
- */
 export async function saveFogCheckToDB(
   userId: string,
   fogCheck: FogCheckResult,
@@ -362,12 +483,6 @@ export async function saveFogCheckToDB(
   return created.id;
 }
 
-/**
- * Get Fog Check by log ID
- * 
- * @param logId - The strategic log ID
- * @returns Fog Check if exists, null otherwise
- */
 export async function getFogCheckByLogId(logId: string) {
   return await prisma.fogCheck.findFirst({
     where: { logId },
@@ -376,13 +491,9 @@ export async function getFogCheckByLogId(logId: string) {
 }
 
 // ============================================
-// BACKWARD COMPATIBILITY (Kept from original)
+// BACKWARD COMPATIBILITY
 // ============================================
 
-/**
- * Save Fog Check to database (original signature)
- * Kept for backward compatibility with existing code
- */
 export async function saveFogCheck(
   logId: string,
   userId: string,
