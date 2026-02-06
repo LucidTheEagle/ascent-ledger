@@ -1,6 +1,7 @@
 // ============================================
 // app/log/fog-check/[logId]/result/page.tsx
 // SERVER COMPONENT: Fetches Fog Check data, renders display
+// FIXED: More defensive async params handling
 // ============================================
 
 import { notFound, redirect } from 'next/navigation';
@@ -13,10 +14,7 @@ interface PageProps {
   searchParams: Promise<{ tokensAwarded?: string; newBalance?: string }>;
 }
 
-export default async function FogCheckResultPage({
-  params,
-  searchParams,
-}: PageProps) {
+export default async function FogCheckResultPage(props: PageProps) {
   // ============================================
   // AUTHENTICATION
   // ============================================
@@ -28,10 +26,21 @@ export default async function FogCheckResultPage({
   }
 
   // ============================================
+  // AWAIT PARAMS (DEFENSIVE)
+  // ============================================
+  const params = await props.params;
+  const searchParams = await props.searchParams;
+  
+  const logId = params.logId;
+  
+  if (!logId) {
+    console.error('[FOG_CHECK_RESULT] Missing logId in params');
+    notFound();
+  }
+
+  // ============================================
   // FETCH FOG CHECK DATA
   // ============================================
-  const { logId } = await params;
-  
   const fogCheck = await prisma.fogCheck.findFirst({
     where: {
       logId,
@@ -47,15 +56,17 @@ export default async function FogCheckResultPage({
   });
 
   if (!fogCheck) {
+    console.error(`[FOG_CHECK_RESULT] No fog check found for logId: ${logId}, userId: ${user.id}`);
     notFound();
   }
 
   // ============================================
   // PARSE URL PARAMS (Token data from loader)
   // ============================================
-  const search = await searchParams;
-  const tokensAwarded = search.tokensAwarded ? parseInt(search.tokensAwarded) : undefined;
-  const newBalance = search.newBalance ? parseInt(search.newBalance) : undefined;
+  const tokensAwarded = searchParams.tokensAwarded ? parseInt(searchParams.tokensAwarded) : undefined;
+  const newBalance = searchParams.newBalance ? parseInt(searchParams.newBalance) : undefined;
+
+  console.log(`[FOG_CHECK_RESULT] Rendering for logId: ${logId}, fogCheckId: ${fogCheck.id}`);
 
   // ============================================
   // RENDER CLIENT COMPONENT
@@ -76,8 +87,8 @@ export default async function FogCheckResultPage({
 // ============================================
 // METADATA (SEO)
 // ============================================
-export async function generateMetadata({ params }: PageProps) {
-  const { logId } = await params;
+export async function generateMetadata(props: PageProps) {
+  const params = await props.params;
   
   return {
     title: 'Your Fog Check | Ascent Ledger',
