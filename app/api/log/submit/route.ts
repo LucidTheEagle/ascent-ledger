@@ -4,6 +4,7 @@
 // THE MIND: Validates, prevents duplicates, calculates week
 // THE HEART: Prepares for the Fog Check
 // THE BRAIN: Syncs to graph for pattern detection
+// REFACTORED: Sprint 4 Checkpoint 3 - Streak logic moved to service
 // ============================================
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,6 +12,7 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentWeekStartDate, getAscentWeek } from '@/lib/utils/week-calculator';
 import { generateLogEmbedding, embeddingToString } from '@/lib/ai/embeddings';
+import { updateStreakOnLog } from '@/lib/services/streak-service';
 
 // Validation schema
 interface LogSubmitBody {
@@ -65,7 +67,7 @@ export async function POST(req: NextRequest) {
     const weekOf = getCurrentWeekStartDate();
 
     // ============================================
-    // GEMINI CRITIQUE #2: DOUBLE LOG PREVENTION
+    // DOUBLE LOG PREVENTION
     // ============================================
     const existingLog = await prisma.strategicLog.findFirst({
       where: {
@@ -85,9 +87,8 @@ export async function POST(req: NextRequest) {
     }
 
     // ============================================
-    // GEMINI CRITIQUE #1: WEEK CALCULATION
+    // WEEK CALCULATION
     // ============================================
-    // Fetch user's account creation date to calculate Ascent Week
     const userData = await prisma.user.findUnique({
       where: { id: body.userId },
       select: { createdAt: true },
@@ -122,15 +123,12 @@ export async function POST(req: NextRequest) {
     // ============================================
     // THE MEMORY: GENERATE EMBEDDING (ASYNC)
     // ============================================
-    // Generate embedding in the background (don't block response)
-    // This runs asynchronously - user doesn't wait for it
     generateLogEmbedding({
       leverageBuilt: body.leverageBuilt,
       learnedInsight: body.learnedInsight,
       opportunitiesCreated: body.opportunitiesCreated,
     })
       .then(embedding => {
-        // Store embedding in database
         return prisma.strategicLog.update({
           where: { id: strategicLog.id },
           data: { embedding: embeddingToString(embedding) },
@@ -141,15 +139,11 @@ export async function POST(req: NextRequest) {
       })
       .catch(error => {
         console.error(`❌ Failed to generate embedding for log ${strategicLog.id}:`, error);
-        // Don't fail the request - embedding is optional for MVP
       });
 
     // ============================================
     // THE BRAIN: SYNC TO GRAPH (ASYNC)
     // ============================================
-    // Sync log to FalkorDB for pattern detection
-    // This runs asynchronously - user doesn't wait for it
-    // If graph sync fails, app continues (graceful degradation)
     import('@/lib/graph/sync-log')
       .then(({ syncLogToGraph }) => {
         return syncLogToGraph({
@@ -165,80 +159,23 @@ export async function POST(req: NextRequest) {
       })
       .then(result => {
         if (result.success) {
-          console.log(`Graph synced for log ${strategicLog.id}: ${result.topicsCreated} topics, fog=${result.fogDetected}`);
+          console.log(`✅ Graph synced for log ${strategicLog.id}: ${result.topicsCreated} topics, fog=${result.fogDetected}`);
         } else {
-          console.warn(`Graph sync incomplete for log ${strategicLog.id}: ${result.error}`);
+          console.warn(`⚠️ Graph sync incomplete for log ${strategicLog.id}: ${result.error}`);
         }
       })
       .catch(error => {
-        console.error(`Graph sync failed for log ${strategicLog.id}:`, error);
-        // Don't fail the request - graph sync is enhancement, not dependency
+        console.error(`❌ Graph sync failed for log ${strategicLog.id}:`, error);
       });
 
     // ============================================
-    // THE HEART: UPDATE STREAK
+    // THE HEART: UPDATE STREAK (REFACTORED)
     // ============================================
-    // Fetch current user data for streak calculation
-    const currentUser = await prisma.user.findUnique({
-      where: { id: body.userId },
-      select: { 
-        currentStreak: true,
-        longestStreak: true,
-      },
-    });
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    // Calculate if this is consecutive week
-    const lastLog = await prisma.strategicLog.findFirst({
-      where: {
-        userId: body.userId,
-        id: { not: strategicLog.id }, // Exclude the log we just created
-      },
-      orderBy: { weekOf: 'desc' },
-    });
-
-    let newStreak = 1;
-    if (lastLog) {
-      // Check if last log was exactly 1 week ago
-      const daysDiff = Math.floor(
-        (weekOf.getTime() - lastLog.weekOf.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      
-      if (daysDiff === 7) {
-        // Consecutive week - increment streak
-        newStreak = currentUser.currentStreak + 1;
-      }
-      // If daysDiff > 7, streak breaks, reset to 1 (already set)
-    }
-
-    // Calculate new longest streak
-    const newLongestStreak = Math.max(newStreak, currentUser.longestStreak);
-
-    // Update user's streak and last log date
-    await prisma.user.update({
-      where: { id: body.userId },
-      data: {
-        currentStreak: newStreak,
-        longestStreak: newLongestStreak,
-        lastLogDate: weekOf,
-      },
-    });
-
-    // Award Life Line every 4 weeks
-    if (newStreak % 4 === 0) {
-      await prisma.user.update({
-        where: { id: body.userId },
-        data: {
-          lifeLines: { increment: 1 },
-        },
-      });
-    }
+    const streakResult = await updateStreakOnLog(
+      body.userId,
+      weekOf,
+      'ASCENT'
+    );
 
     // ============================================
     // RESPONSE: SUCCESS
@@ -248,7 +185,13 @@ export async function POST(req: NextRequest) {
       logId: strategicLog.id,
       weekNumber: ascentWeek,
       weekOf: weekOf.toISOString(),
-      streak: newStreak,
+      streak: {
+        current: streakResult.newStreak,
+        longest: streakResult.longestStreak,
+        lifeLinesUsed: streakResult.lifeLinesUsed,
+        lifeLinesEarned: streakResult.lifeLinesEarned,
+        message: streakResult.message,
+      },
       message: 'Log saved. Preparing your Fog Check...',
     });
 
