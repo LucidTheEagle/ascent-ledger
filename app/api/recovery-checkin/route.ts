@@ -1,10 +1,16 @@
-// app/api/recovery-checkin/route.ts (FIXED - Correct function signatures)
+// ============================================
+// app/api/recovery-checkin/route.ts
+// THE OXYGEN: Recovery mode check-ins
+// REFACTORED: Sprint 4 Checkpoint 3 - Added streak tracking
+// ============================================
+
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { awardTokens } from "@/lib/services/token-service";
 import { getWeekOf } from "@/lib/utils/week-calculator";
 import { generateCrisisFogCheck, saveFogCheckToDB } from "@/lib/services/fog-check-service";
+import { updateStreakOnLog } from "@/lib/services/streak-service";
 
 export async function POST(req: NextRequest) {
   try {
@@ -101,27 +107,36 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Reward tokens for check-in
+    // ============================================
+    // NEW: UPDATE STREAK (RECOVERY MODE)
+    // ============================================
+    const streakResult = await updateStreakOnLog(
+      user.id,
+      weekOf,
+      'RECOVERY' // Recovery mode flag
+    );
+
+    // ============================================
+    // REWARD TOKENS
+    // ============================================
     await awardTokens({
       userId: user.id,
       amount: 50,
       description: "Recovery Check-in",
       relatedEntityId: checkin.id,
-      transactionType: "RECOVERY_CHECKIN", // Correct transaction type
+      transactionType: "RECOVERY_CHECKIN",
     });
 
     // ============================================
-    // NEW: Auto-generate Crisis Fog Check
+    // AUTO-GENERATE CRISIS FOG CHECK
     // ============================================
     let fogCheck = null;
     try {
-      // Generate Crisis Fog Check
       const fogCheckResult = await generateCrisisFogCheck(
         user.id,
         protocolId
       );
 
-      // Save to database using new signature
       const fogCheckId = await saveFogCheckToDB(
         user.id,
         fogCheckResult,
@@ -134,11 +149,12 @@ export async function POST(req: NextRequest) {
         strategicQuestion: fogCheckResult.strategicQuestion,
       };
     } catch (fogCheckError) {
-      // Log error but don't fail the check-in
       console.error("[CRISIS_FOG_CHECK_ERROR]", fogCheckError);
     }
 
-    // Check if user is stable (3+ weeks at oxygen level 6+)
+    // ============================================
+    // CHECK STABILITY (3+ weeks at oxygen 6+)
+    // ============================================
     const recentCheckins = await prisma.recoveryCheckin.findMany({
       where: {
         userId: user.id,
@@ -155,6 +171,9 @@ export async function POST(req: NextRequest) {
 
     const isStable = recentCheckins.length >= 3;
 
+    // ============================================
+    // RESPONSE: SUCCESS
+    // ============================================
     return NextResponse.json({
       success: true,
       checkin: {
@@ -162,7 +181,14 @@ export async function POST(req: NextRequest) {
         weekOf: checkin.weekOf,
         oxygenLevelCurrent: checkin.oxygenLevelCurrent,
       },
-      fogCheck, // Include generated fog check
+      streak: {
+        current: streakResult.newStreak,
+        longest: streakResult.longestStreak,
+        lifeLinesUsed: streakResult.lifeLinesUsed,
+        lifeLinesEarned: streakResult.lifeLinesEarned,
+        message: streakResult.message,
+      },
+      fogCheck,
       isStable,
     });
   } catch (error) {
@@ -174,7 +200,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET endpoint remains the same
+// ============================================
+// GET ENDPOINT (No changes needed)
+// ============================================
 export async function GET(req: NextRequest) {
   try {
     const supabase = await createClient();
