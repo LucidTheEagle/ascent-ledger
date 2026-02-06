@@ -1,24 +1,29 @@
 // ============================================
 // lib/services/token-service.ts
 // THE ECONOMY: Token awarding and transaction management
+// Sprint 4 Enhanced: Dashboard-ready
 // ============================================
 
 import { prisma } from '@/lib/prisma';
 
 export const TOKEN_AMOUNTS = {
-  FOG_CHECK_COMPLETE: 50,
   VISION_CANVAS_COMPLETE: 100,
+  WEEKLY_LOG_COMPLETE: 50,        // NEW: Strategic Log submission
+  FOG_CHECK_COMPLETE: 50,
   RECOVERY_CHECKIN: 30,
   STREAK_MILESTONE_4_WEEKS: 200,
   CRISIS_PROTOCOL_COMPLETE: 150,
+  CRISIS_EXIT_BONUS: 50,          // NEW: Transitioning Recovery → Ascent
 } as const;
 
 export const TRANSACTION_TYPES = {
-  FOG_CHECK: 'FOG_CHECK',
   VISION_CANVAS: 'VISION_CANVAS',
+  WEEKLY_LOG: 'WEEKLY_LOG',       // NEW
+  FOG_CHECK: 'FOG_CHECK',
   RECOVERY_CHECKIN: 'RECOVERY_CHECKIN',
   STREAK_BONUS: 'STREAK_BONUS',
   CRISIS_COMPLETE: 'CRISIS_COMPLETE',
+  CRISIS_EXIT: 'CRISIS_EXIT',     // NEW
   PURCHASE: 'PURCHASE',
 } as const;
 
@@ -217,5 +222,75 @@ export async function getTokenBalance(userId: string) {
     currentBalance: user.tokenBalance,
     totalEarned: user.totalTokensEarned,
     totalSpent: user.totalTokensEarned - user.tokenBalance,
+  };
+}
+
+// ============================================
+// SPRINT 4 ENHANCEMENTS: Dashboard Helpers
+// ============================================
+
+/**
+ * Check if user has already been awarded tokens for a specific entity
+ * (Prevents double-awarding for the same log/vision/etc.)
+ * 
+ * @param userId - User ID
+ * @param relatedEntityId - ID of log, vision, etc.
+ * @returns Boolean indicating if tokens already awarded
+ */
+export async function hasBeenAwarded(
+  userId: string,
+  relatedEntityId: string
+): Promise<boolean> {
+  const existingTransaction = await prisma.tokenTransaction.findFirst({
+    where: {
+      userId,
+      relatedEntityId,
+    },
+  });
+
+  return existingTransaction !== null;
+}
+
+/**
+ * Get comprehensive token statistics for dashboard display
+ * 
+ * @param userId - User ID
+ * @returns Token stats including recent transactions
+ */
+export async function getTokenStats(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      tokenBalance: true,
+      totalTokensEarned: true,
+    },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Get recent transactions (last 5)
+  const recentTransactions = await prisma.tokenTransaction.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+    select: {
+      id: true,
+      amount: true,
+      transactionType: true,
+      description: true,
+      createdAt: true,
+    },
+  });
+
+  // Calculate stats
+  const totalSpent = user.totalTokensEarned - user.tokenBalance;
+
+  return {
+    currentBalance: user.tokenBalance,
+    totalEarned: user.totalTokensEarned,
+    totalSpent,
+    recentTransactions,
   };
 }
