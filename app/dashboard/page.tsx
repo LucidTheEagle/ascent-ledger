@@ -1,15 +1,15 @@
 // ============================================
 // app/dashboard/page.tsx
 // DASHBOARD: User's command center with Bento Grid layout
-// UPDATED: Checkpoint 6 - Uses VisionCard component
+// UPDATED: Checkpoint 7 - Uses ThisWeekCard component
 // ============================================
 
-import { Target, TrendingUp, Coins, Flame } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { TrendingUp, Coins, Flame } from 'lucide-react';
 import Link from 'next/link';
 import { getDashboardData } from '@/app/actions/dashboard';
 import { RecoveryDashboard } from '@/components/dashboard/RecoveryDashboard';
 import { VisionCard } from '@/components/dashboard/cards/VisionCard';
+import { ThisWeekCard } from '@/components/dashboard/cards/ThisWeekCard';
 import {
   BentoGrid,
   BentoGridItem,
@@ -97,7 +97,7 @@ export default async function DashboardPage() {
         <BentoGrid>
           
           {/* ============================================
-              VISION CARD (Full Width) - NOW COMPONENT
+              VISION CARD (Full Width)
           ============================================ */}
           <BentoGridItem colSpan={3}>
             <VisionCard
@@ -108,90 +108,13 @@ export default async function DashboardPage() {
           </BentoGridItem>
 
           {/* ============================================
-              THIS WEEK'S LOG CARD (2 columns on desktop)
+              THIS WEEK'S ALTITUDE CARD (2 columns) - NOW COMPONENT
           ============================================ */}
           <BentoGridItem colSpan={2}>
-            <BentoCardHeader
-              icon={<Target className="w-5 h-5 text-purple-400" />}
-              title="This Week's Log"
+            <ThisWeekCard
+              thisWeeksLog={thisWeeksLog}
+              currentWeek={currentWeek}
             />
-            <BentoCardContent>
-              {thisWeeksLog ? (
-                // User HAS logged this week
-                <div className="space-y-6">
-                  {/* Log Preview */}
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                        Leverage Built
-                      </p>
-                      <p className="text-gray-300 line-clamp-2">
-                        {thisWeeksLog.leverageBuilt}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                        Learned Insight
-                      </p>
-                      <p className="text-gray-300 line-clamp-2">
-                        {thisWeeksLog.learnedInsight}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Fog Check Preview */}
-                  {thisWeeksLog.fogCheck && (
-                    <div className="pt-4 border-t border-white/10">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-                        <p className="text-sm text-purple-400 font-semibold">
-                          Your Fog Check
-                        </p>
-                      </div>
-                      <p className="text-gray-400 italic line-clamp-3">
-                        &quot;{thisWeeksLog.fogCheck.observation}&quot;
-                      </p>
-                      <Link
-                        href={`/log/fog-check/${thisWeeksLog.id}/result`}
-                        className="inline-block mt-3 text-sm text-purple-400 hover:text-purple-300 transition-colors"
-                      >
-                        View full Fog Check →
-                      </Link>
-                    </div>
-                  )}
-
-                  {/* Logged timestamp */}
-                  <p className="text-xs text-gray-600 mt-auto">
-                    Logged {new Date(thisWeeksLog.createdAt).toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </p>
-                </div>
-              ) : (
-                // User has NOT logged this week (Empty State)
-                <div className="flex-1 flex flex-col items-center justify-center text-center py-8 space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-purple-500/10 flex items-center justify-center">
-                    <Target className="w-8 h-8 text-purple-400" />
-                  </div>
-                  <div>
-                    <p className="text-gray-300 text-lg font-medium">
-                      You haven&apos;t logged yet this week.
-                    </p>
-                    <p className="text-gray-500 text-sm mt-1">
-                      Your vision is waiting.
-                    </p>
-                  </div>
-                  
-                  <Link href="/log/new">
-                    <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white px-8 py-6 text-lg min-h-[44px]">
-                      Log This Week →
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </BentoCardContent>
           </BentoGridItem>
 
           {/* ============================================
