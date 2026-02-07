@@ -1,15 +1,15 @@
 // ============================================
 // app/dashboard/page.tsx
 // DASHBOARD: User's command center with Bento Grid layout
-// REFACTORED: Sprint 4 Checkpoint 5 - Uses Server Action + Bento Grid
-// FIXED: Removed unused imports and variables
+// UPDATED: Checkpoint 6 - Uses VisionCard component
 // ============================================
 
-import { Sparkles, Target, TrendingUp, Coins, Flame } from 'lucide-react';
+import { Target, TrendingUp, Coins, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { getDashboardData } from '@/app/actions/dashboard';
 import { RecoveryDashboard } from '@/components/dashboard/RecoveryDashboard';
+import { VisionCard } from '@/components/dashboard/cards/VisionCard';
 import {
   BentoGrid,
   BentoGridItem,
@@ -97,26 +97,14 @@ export default async function DashboardPage() {
         <BentoGrid>
           
           {/* ============================================
-              VISION CARD (Full Width)
+              VISION CARD (Full Width) - NOW COMPONENT
           ============================================ */}
           <BentoGridItem colSpan={3}>
-            <BentoCardHeader
-              icon={<Sparkles className="w-5 h-5" />}
-              title="Your Vision"
-              action={
-                <Link 
-                  href="/vision-canvas" 
-                  className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  Edit →
-                </Link>
-              }
+            <VisionCard
+              vision={vision}
+              totalLogsCount={stats.totalLogsCount}
+              visionHorizonWeeks={78}
             />
-            <BentoCardContent>
-              <p className="text-gray-300 leading-relaxed">
-                {vision.aiSynthesis}
-              </p>
-            </BentoCardContent>
           </BentoGridItem>
 
           {/* ============================================
