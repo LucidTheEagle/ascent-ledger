@@ -5,11 +5,11 @@
 // ============================================
 
 import { TrendingUp, Coins, Flame } from 'lucide-react';
-import Link from 'next/link';
 import { getDashboardData } from '@/app/actions/dashboard';
 import { RecoveryDashboard } from '@/components/dashboard/RecoveryDashboard';
 import { VisionCard } from '@/components/dashboard/cards/VisionCard';
 import { ThisWeekCard } from '@/components/dashboard/cards/ThisWeekCard';
+import { FogForecastCard } from '@/components/dashboard/cards/FogForecastCard';
 import {
   BentoGrid,
   BentoGridItem,
@@ -114,6 +114,16 @@ export default async function DashboardPage() {
             <ThisWeekCard
               thisWeeksLog={thisWeeksLog}
               currentWeek={currentWeek}
+            />
+          </BentoGridItem>
+
+          {/* ============================================
+              FOG FORECAST CARD (1 column) - NEW
+          ============================================ */}
+          <BentoGridItem colSpan={1}>
+            <FogForecastCard
+              patterns={dashboardData.fogForecast}
+              isStreakBroken={streakData.currentStreak === 0 && stats.totalLogsCount > 0}
             />
           </BentoGridItem>
 
