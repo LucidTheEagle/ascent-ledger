@@ -1,7 +1,7 @@
 // ============================================
 // app/actions/dashboard.ts
 // DASHBOARD VIEWMODEL: Single optimized data fetch for both modes
-// Sprint 4 - Checkpoint 4
+// UPDATED: Checkpoint 8 - Added pattern detection for Fog Forecast
 // ============================================
 
 'use server';
@@ -12,6 +12,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentWeekStartDate, getAscentWeek } from '@/lib/utils/week-calculator';
 import { getStreakData } from '@/lib/services/streak-service';
 import { getTokenStats } from '@/lib/services/token-service';
+import { detectAllPatterns, type PatternDetectionResult } from '@/lib/graph/patterns';
 
 // ============================================
 // TYPES
@@ -73,6 +74,7 @@ export interface VisionTrackDashboardData {
       createdAt: Date;
     }>;
   };
+  fogForecast: PatternDetectionResult;
 }
 
 export interface RecoveryTrackDashboardData {
@@ -281,6 +283,35 @@ async function getVisionDashboardData(
   // Fetch token stats (from service)
   const tokenStats = await getTokenStats(userProfile.id);
 
+  // ============================================
+  // NEW: PATTERN DETECTION (FOG FORECAST)
+  // ============================================
+  let fogForecast: PatternDetectionResult = {
+    hasPatterns: false,
+    learningWithoutAction: { detected: false, streakWeeks: 0, recentLogs: [] },
+    slidingIntoFog: { detected: false, mentionCount: 0, fogName: '', recentMentions: [] },
+    visionMisalignment: { 
+      detected: false, 
+      misalignedLogCount: 0, 
+      visionKeywords: [], 
+      actualTopics: [], 
+      alignmentScore: 1.0 
+    },
+    summary: [],
+  };
+
+  try {
+    // Run pattern detection (lookback 4 weeks)
+    fogForecast = await detectAllPatterns(
+      userProfile.id,
+      vision.desiredState,
+      4
+    );
+  } catch (error) {
+    console.error('[Dashboard] Pattern detection failed:', error);
+    // Graceful degradation: Clear skies if detection fails
+  }
+
   return {
     mode: 'ASCENT',
     user: {
@@ -315,6 +346,7 @@ async function getVisionDashboardData(
     },
     streakData,
     tokenStats,
+    fogForecast,
   };
 }
 
