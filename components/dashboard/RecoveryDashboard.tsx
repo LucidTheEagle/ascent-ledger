@@ -1,7 +1,7 @@
 // ============================================
 // components/dashboard/RecoveryDashboard.tsx
 // RECOVERY MODE DASHBOARD: Now accepts props from Server Action
-// ENHANCED: Sprint 4 Checkpoint 5 - No client-side fetching
+// UPDATED: Checkpoint 10 - Extracted header to DashboardHeader component
 // ============================================
 
 "use client";
@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import {
   Shield,
   CheckCircle,
@@ -19,8 +20,6 @@ import {
   AlertCircle,
   Check,
   Sparkles,
-  Coins,
-  Flame,
 } from "lucide-react";
 import type { RecoveryTrackDashboardData } from "@/app/actions/dashboard";
 import {
@@ -142,46 +141,15 @@ export function RecoveryDashboard({ data }: RecoveryDashboardProps) {
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* ============================================
-            HEADER
+            HEADER (Now extracted to component)
         ============================================ */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Shield className="h-8 w-8 text-amber-500" />
-            <div>
-              <h1 className="text-3xl font-bold text-white">Recovery Mode</h1>
-              <p className="text-gray-400">
-                Mission: Conservation · Week {weeksSinceStart}
-              </p>
-            </div>
-          </div>
-
-          {/* Stats Pills */}
-          <div className="flex items-center gap-4">
-            {/* Token Balance */}
-            <div className="px-4 py-3 rounded-lg bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/20">
-              <div className="flex items-center gap-2">
-                <Coins className="w-5 h-5 text-amber-400" />
-                <div>
-                  <p className="text-xs text-amber-400/70 uppercase tracking-wide">Tokens</p>
-                  <p className="text-2xl font-bold text-amber-400">{user.tokenBalance}</p>
-                </div>
-              </div>
-            </div>
-            
-            {/* Streak */}
-            <div className="px-4 py-3 rounded-lg bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20">
-              <div className="flex items-center gap-2">
-                <Flame className="w-5 h-5 text-orange-400" />
-                <div>
-                  <p className="text-xs text-orange-400/70 uppercase tracking-wide">Streak</p>
-                  <p className="text-2xl font-bold text-orange-400">
-                    {streakData.currentStreak}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <DashboardHeader
+          title="Recovery Mode"
+          subtitle={`Mission: Conservation · Week ${weeksSinceStart}`}
+          tokenBalance={user.tokenBalance}
+          currentStreak={streakData.currentStreak}
+          icon={<Shield className="h-8 w-8 text-amber-500" />}
+        />
 
         {/* Crisis Type Badge */}
         <Card className="p-4 bg-amber-500/10 border-amber-500/30">
