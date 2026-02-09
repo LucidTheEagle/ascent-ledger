@@ -1,7 +1,7 @@
 // ============================================
 // app/actions/dashboard.ts
 // DASHBOARD VIEWMODEL: Single optimized data fetch for both modes
-// UPDATED: Checkpoint 8 - Added pattern detection for Fog Forecast
+// UPDATED: Checkpoint 9 - Added recentLogs for Ascent Tracker
 // ============================================
 
 'use server';
@@ -75,6 +75,13 @@ export interface VisionTrackDashboardData {
     }>;
   };
   fogForecast: PatternDetectionResult;
+  recentLogs: Array<{
+    id: string;
+    weekOf: Date;
+    leverageBuilt: string;
+    learnedInsight: string;
+    createdAt: Date;
+  }>;
 }
 
 export interface RecoveryTrackDashboardData {
@@ -284,7 +291,7 @@ async function getVisionDashboardData(
   const tokenStats = await getTokenStats(userProfile.id);
 
   // ============================================
-  // NEW: PATTERN DETECTION (FOG FORECAST)
+  // PATTERN DETECTION (FOG FORECAST)
   // ============================================
   let fogForecast: PatternDetectionResult = {
     hasPatterns: false,
@@ -311,6 +318,26 @@ async function getVisionDashboardData(
     console.error('[Dashboard] Pattern detection failed:', error);
     // Graceful degradation: Clear skies if detection fails
   }
+
+  // ============================================
+  // NEW: FETCH RECENT LOGS (FOR ASCENT TRACKER)
+  // ============================================
+  const recentLogs = await prisma.strategicLog.findMany({
+    where: {
+      userId: userProfile.id,
+    },
+    select: {
+      id: true,
+      weekOf: true,
+      leverageBuilt: true,
+      learnedInsight: true,
+      createdAt: true,
+    },
+    orderBy: {
+      weekOf: 'desc',
+    },
+    take: 12, // Last 12 weeks for timeline visualization
+  });
 
   return {
     mode: 'ASCENT',
@@ -347,6 +374,7 @@ async function getVisionDashboardData(
     streakData,
     tokenStats,
     fogForecast,
+    recentLogs,
   };
 }
 
