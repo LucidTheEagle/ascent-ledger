@@ -53,36 +53,36 @@ export default async function DashboardPage() {
         {/* ============================================
             HEADER
         ============================================ */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white">
-              Clear Sky{user.fullName ? `, ${user.fullName.split(' ')[0]}` : ''}.
-            </h1>
-            <p className="text-gray-400 mt-1">
-              Week {currentWeek} of your ascent
-            </p>
-          </div>
-          
-          {/* Stats Pills */}
-          <div className="flex items-center gap-4">
-            {/* Token Balance */}
-            <div className="px-4 py-3 rounded-lg bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/20">
-              <div className="flex items-center gap-2">
-                <Coins className="w-5 h-5 text-amber-400" />
-                <div>
-                  <p className="text-xs text-amber-400/70 uppercase tracking-wide">Tokens</p>
-                  <p className="text-2xl font-bold text-amber-400">{user.tokenBalance}</p>
+        <div className="flex flex-col gap-4 mb-6 md:mb-0 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white">
+                Clear Sky{user.fullName ? `, ${user.fullName.split(' ')[0]}` : ''}.
+              </h1>
+              <p className="text-sm md:text-base text-gray-400 mt-1">
+                Week {currentWeek} of your ascent
+              </p>
+            </div>
+            
+            {/* Stats Pills */}
+            <div className="flex items-center gap-3 md:gap-4">
+              {/* Token Balance */}
+              <div className="px-3 py-2 md:px-4 md:py-3 rounded-lg bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/20 flex-1 md:flex-initial">
+                <div className="flex items-center gap-2">
+                  <Coins className="w-4 h-4 md:w-5 md:h-5 text-amber-400" />
+                  <div>
+                  <p className="text-[10px] md:text-xs text-amber-400/70 uppercase tracking-wide">Tokens</p>
+                  <p className="text-xl md:text-2xl font-bold text-amber-400">{user.tokenBalance}</p>
                 </div>
               </div>
             </div>
             
             {/* Streak */}
-            <div className="px-4 py-3 rounded-lg bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20">
+            <div className="px-3 py-2 md:px-4 md:py-3 rounded-lg bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 flex-1 md:flex-initial">
               <div className="flex items-center gap-2">
-                <Flame className="w-5 h-5 text-orange-400" />
+                <Flame className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
                 <div>
-                  <p className="text-xs text-orange-400/70 uppercase tracking-wide">Streak</p>
-                  <p className="text-2xl font-bold text-orange-400">
+                  <p className="text-[10px] md:text-xs text-orange-400/70 uppercase tracking-wide">Streak</p>
+                  <p className="text-xl md:text-2xl font-bold text-orange-400">
                     {user.currentStreak}
                   </p>
                 </div>
