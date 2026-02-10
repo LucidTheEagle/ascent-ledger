@@ -92,7 +92,14 @@ export function RecoveryDashboard({ data }: RecoveryDashboardProps) {
       const result = await response.json();
 
       if (result.success) {
-        router.push("/vision-canvas?transitioned=true");
+        // ============================================
+        // UPDATED: Redirect through token-payday page
+        // ============================================
+        const visionCanvasUrl = "/vision-canvas?transitioned=true";
+        
+        router.push(
+          `/token-payday?amount=${result.tokensAwarded}&newBalance=${result.newBalance}&reason=CRISIS_EXIT&redirect=${encodeURIComponent(visionCanvasUrl)}`
+        );
       } else {
         alert(result.error || "Failed to transition. Please try again.");
       }
