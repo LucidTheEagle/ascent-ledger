@@ -20,6 +20,7 @@ export function NavigationWrapper() {
     "/log/new",
     "/log/fog-check",
     "/recovery-checkin",
+    "/token-payday",
   ];
 
   // Check if current path starts with any of the hidden paths

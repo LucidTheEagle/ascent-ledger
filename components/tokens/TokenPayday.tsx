@@ -1,7 +1,7 @@
 // ============================================
 // components/tokens/TokenPayday.tsx
 // THE REWARD: 3D coin animation + particle burst
-// ENGINEERED: 60fps, auto-advance, pure dopamine
+// REFACTORED: Checkpoint 11 - Universal redirect support
 // ============================================
 
 'use client';
@@ -11,57 +11,69 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
 interface TokenPaydayProps {
-  tokensAwarded: number;
+  /** Amount of tokens awarded */
+  amount: number;
+  /** New total balance */
   newBalance: number;
-  logId: string;
+  /** Reason for token award (displayed to user) */
+  reason: string;
+  /** Where to redirect after animation (flexible) */
+  redirectUrl: string;
   /** Duration in milliseconds before auto-advance */
   duration?: number;
-  amount: number;
-  description: string;
-  icon: string;
-  subtitle: string;
 }
 
+const REASON_LABELS: Record<string, string> = {
+  VISION_COMPLETE: 'Vision Canvas Completed',
+  WEEKLY_LOG: 'Weekly Log Completed',
+  STREAK_MILESTONE: 'Streak Milestone Reached',
+  CRISIS_EXIT: 'Recovery Complete',
+  RECOVERY_CHECKIN: 'Recovery Check-in',
+};
+
 export default function TokenPayday({
-  tokensAwarded,
+  amount,
   newBalance,
-  logId,
+  reason,
+  redirectUrl,
   duration = 2000,
 }: TokenPaydayProps) {
   const router = useRouter();
   const [count, setCount] = useState(0);
 
+  const displayReason = REASON_LABELS[reason] || reason;
+
   // ============================================
-  // ANIMATED COUNTER (0 → tokensAwarded)
+  // ANIMATED COUNTER (0 → amount)
   // ============================================
   useEffect(() => {
-    const increment = tokensAwarded / 30; // 30 frames over ~500ms
+    const increment = amount / 30; // 30 frames over ~500ms
     const interval = 500 / 30;
 
     const timer = setInterval(() => {
       setCount((prev) => {
         const next = prev + increment;
-        if (next >= tokensAwarded) {
+        if (next >= amount) {
           clearInterval(timer);
-          return tokensAwarded;
+          return amount;
         }
         return next;
       });
     }, interval);
 
     return () => clearInterval(timer);
-  }, [tokensAwarded]);
+  }, [amount]);
 
   // ============================================
   // AUTO-ADVANCE (After duration)
   // ============================================
   useEffect(() => {
     const timer = setTimeout(() => {
-      router.push(`/log/fog-check/${logId}/result?tokensAwarded=${tokensAwarded}&newBalance=${newBalance}`);
+      router.push(redirectUrl);
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [duration, router, logId, tokensAwarded, newBalance]);
+  }, [duration, router, redirectUrl]);
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-slate-950 via-amber-950/20 to-slate-950 overflow-hidden relative">
@@ -107,6 +119,18 @@ export default function TokenPayday({
           </p>
         </motion.div>
 
+        {/* Reason */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+          className="mb-4"
+        >
+          <p className="text-lg text-gray-300">
+            {displayReason}
+          </p>
+        </motion.div>
+
         {/* New Balance */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
@@ -115,7 +139,7 @@ export default function TokenPayday({
           className="text-gray-400"
         >
           <p className="text-lg">
-            New Balance: <span className="text-amber-400 font-mono font-semibold">{newBalance}</span>
+            New Balance: <span className="text-amber-400 font-mono font-semibold">{newBalance.toLocaleString()}</span>
           </p>
         </motion.div>
 
@@ -147,7 +171,7 @@ export default function TokenPayday({
           position: relative;
           transform-style: preserve-3d;
           animation: coinSpin 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
-          will-change: transform; /* GPU acceleration for mobile */
+          will-change: transform;
         }
 
         /* Mobile optimization: smaller coin, faster animation */
@@ -218,7 +242,7 @@ export default function TokenPayday({
 // ============================================
 function ParticleBurst() {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const particleCount = isMobile ? 12 : 24; // Half particles on mobile
+  const particleCount = isMobile ? 12 : 24;
   const particles = Array.from({ length: particleCount }, (_, i) => i);
 
   return (
