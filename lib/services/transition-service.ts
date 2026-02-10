@@ -2,10 +2,11 @@
 /**
  * TRANSITION SERVICE
  * Detects when users are ready to transition from Recovery to Vision Track
- * Checkpoint 11: Transition Logic
+ * UPDATED: Checkpoint 12 - Use centralized token service
  */
 
 import { prisma } from '@/lib/prisma';
+import { awardTokens, TRANSACTION_TYPES } from '@/lib/services/token-service';
 
 interface TransitionEligibility {
   isEligible: boolean;
@@ -80,7 +81,7 @@ export async function checkTransitionEligibility(
  * 
  * @param userId - User ID to transition
  * @param protocolId - Crisis protocol ID to complete
- * @returns Success status
+ * @returns Success status with new balance
  */
 export async function transitionToVisionTrack(
   userId: string,
@@ -89,6 +90,7 @@ export async function transitionToVisionTrack(
   success: boolean;
   message: string;
   tokensAwarded?: number;
+  newBalance?: number;
 }> {
   try {
     // Verify protocol belongs to user
@@ -117,7 +119,7 @@ export async function transitionToVisionTrack(
     }
 
     // Execute transition in transaction
-    await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       // 1. Mark protocol as completed
       await tx.crisisProtocol.update({
         where: { id: protocolId },
@@ -134,36 +136,28 @@ export async function transitionToVisionTrack(
         },
       });
 
-      // 3. Award bonus tokens (+150)
-      const currentUser = await tx.user.findUnique({
-        where: { id: userId },
-        select: { tokenBalance: true },
+      // 3. Award bonus tokens (+150) using centralized service
+      // This ensures consistent token tracking and transaction recording
+      const tokenResult = await awardTokens({
+        userId,
+        amount: 150,
+        transactionType: 'CRISIS_EXIT',
+        description: 'Transitioned from Recovery to Vision Track',
+        relatedEntityId: protocolId,
       });
 
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          tokenBalance: (currentUser?.tokenBalance || 0) + 150,
-        },
-      });
-
-      // Record transaction
-      await tx.tokenTransaction.create({
-        data: {
-          userId,
-          amount: 150,
-          transactionType: 'RECOVERY_COMPLETE',
-          description: 'Transitioned from Recovery to Vision Track',
-          balanceAfter: (currentUser?.tokenBalance || 0) + 150,
-          relatedEntityId: protocolId,
-        },
-      });
+      return {
+        newBalance: tokenResult.newBalance,
+      };
     });
+
+    console.log(`✅ User ${userId} transitioned to ASCENT mode: +150 tokens, newBalance=${result.newBalance}`);
 
     return {
       success: true,
       message: 'Successfully transitioned to Vision Track!',
       tokensAwarded: 150,
+      newBalance: result.newBalance,
     };
   } catch (error) {
     console.error('[TRANSITION_ERROR]', error);

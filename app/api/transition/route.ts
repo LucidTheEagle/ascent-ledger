@@ -2,7 +2,7 @@
 /**
  * TRANSITION API
  * Handles Recovery → Vision Track transitions
- * Checkpoint 11: Transition Logic
+ * UPDATED: Checkpoint 12 - Return newBalance for token-payday flow
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -46,10 +46,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Return success with token data for token-payday flow
     return NextResponse.json({
       success: true,
       message: result.message,
       tokensAwarded: result.tokensAwarded,
+      newBalance: result.newBalance, // NEW: For token-payday redirect
     });
   } catch (error) {
     console.error('[TRANSITION_API_ERROR]', error);
