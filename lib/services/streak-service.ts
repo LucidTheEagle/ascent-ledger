@@ -1,10 +1,11 @@
 // ============================================
 // lib/services/streak-service.ts
 // THE ASCENT ENGINE: Streak calculation, Life Line management
-// Sprint 4 - Checkpoint 3
+// UPDATED: Checkpoint 12 - Added +200 token milestone bonus
 // ============================================
 
 import { prisma } from '@/lib/prisma';
+import { awardTokens, TRANSACTION_TYPES } from '@/lib/services/token-service';
 
 // ============================================
 // TYPES
@@ -24,6 +25,7 @@ export interface StreakUpdateResult {
   longestStreak: number;
   lifeLinesUsed: number;
   lifeLinesEarned: number;
+  tokensAwarded: number; // NEW: Track milestone tokens
   streakBroken: boolean;
   streakFrozen: boolean;
   message: string;
@@ -40,6 +42,7 @@ export interface StreakUpdateResult {
  * - Life Line auto-consume on missed week
  * - Streak freeze vs break logic
  * - Life Line earning (1 per 4 perfect weeks)
+ * - Token milestone bonus (+200 every 4 weeks)
  * 
  * @param userId - User ID
  * @param weekOf - Week start date (Monday 00:00:00)
@@ -73,6 +76,7 @@ export async function updateStreakOnLog(
     longestStreak: user.longestStreak,
     lifeLinesUsed: 0,
     lifeLinesEarned: 0,
+    tokensAwarded: 0, // NEW
     streakBroken: false,
     streakFrozen: false,
     message: 'Streak started',
@@ -118,10 +122,31 @@ export async function updateStreakOnLog(
     result.newStreak = user.currentStreak + 1;
     result.message = `Streak continues! Week ${result.newStreak}`;
 
-    // Check if user earned a Life Line (every 4 weeks)
+    // Check if user earned a Life Line + Token Milestone (every 4 weeks)
     if (result.newStreak % 4 === 0) {
       result.lifeLinesEarned = 1;
-      result.message = `🛡️ Streak milestone! Week ${result.newStreak}. Life Line earned.`;
+      
+      // ============================================
+      // NEW: AWARD +200 TOKENS FOR MILESTONE
+      // ============================================
+      try {
+        const tokenResult = await awardTokens({
+          userId,
+          amount: 200,
+          transactionType: 'STREAK_BONUS',
+          description: `${result.newStreak}-week streak milestone`,
+          relatedEntityId: `streak-${result.newStreak}`,
+        });
+        
+        result.tokensAwarded = 200;
+        result.message = `🛡️🪙 MILESTONE! Week ${result.newStreak}. Life Line earned + 200 tokens!`;
+        
+        console.log(`✅ Awarded streak milestone bonus: userId=${userId}, streak=${result.newStreak}, tokens=200, newBalance=${tokenResult.newBalance}`);
+      } catch (error) {
+        console.error('❌ Failed to award streak milestone tokens:', error);
+        // Continue without tokens if award fails
+        result.message = `🛡️ Streak milestone! Week ${result.newStreak}. Life Line earned.`;
+      }
       
       await updateUserStreak(userId, {
         currentStreak: result.newStreak,
