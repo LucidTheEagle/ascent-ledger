@@ -4,7 +4,7 @@
 // THE MIND: Validates, prevents duplicates, calculates week
 // THE HEART: Prepares for the Fog Check
 // THE BRAIN: Syncs to graph for pattern detection
-// REFACTORED: Sprint 4 Checkpoint 3 - Streak logic moved to service
+// UPDATED: Checkpoint 11 - Token award integration (+50 tokens)
 // ============================================
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -104,20 +104,48 @@ export async function POST(req: NextRequest) {
     const ascentWeek = getAscentWeek(userData.createdAt);
 
     // ============================================
-    // THE SOUL: SAVE THE LOG
+    // THE SOUL: SAVE THE LOG + AWARD TOKENS
     // ============================================
-    const strategicLog = await prisma.strategicLog.create({
-      data: {
-        userId: body.userId,
-        weekOf: weekOf,
-        leverageBuilt: body.leverageBuilt.trim(),
-        learnedInsight: body.learnedInsight.trim(),
-        opportunitiesCreated: body.opportunitiesCreated.trim(),
-        isSurvivalMode: body.isSurvivalMode,
-        hadNoLeverage: body.hadNoLeverage,
-        // Embedding will be generated asynchronously below
-        embedding: null,
-      },
+    const result = await prisma.$transaction(async (tx) => {
+      // Create strategic log
+      const strategicLog = await tx.strategicLog.create({
+        data: {
+          userId: body.userId,
+          weekOf: weekOf,
+          leverageBuilt: body.leverageBuilt.trim(),
+          learnedInsight: body.learnedInsight.trim(),
+          opportunitiesCreated: body.opportunitiesCreated.trim(),
+          isSurvivalMode: body.isSurvivalMode,
+          hadNoLeverage: body.hadNoLeverage,
+          // Embedding will be generated asynchronously below
+          embedding: null,
+        },
+      });
+
+      // Award +50 tokens for weekly log
+      const tokenAmount = 50;
+
+      const updatedUser = await tx.user.update({
+        where: { id: body.userId },
+        data: {
+          tokenBalance: { increment: tokenAmount },
+          totalTokensEarned: { increment: tokenAmount },
+        },
+      });
+
+      // Record token transaction
+      await tx.tokenTransaction.create({
+        data: {
+          userId: body.userId,
+          amount: tokenAmount,
+          transactionType: 'WEEKLY_LOG',
+          description: `Week ${ascentWeek} log completed`,
+          balanceAfter: updatedUser.tokenBalance,
+          relatedEntityId: strategicLog.id,
+        },
+      });
+
+      return { strategicLog, newBalance: updatedUser.tokenBalance };
     });
 
     // ============================================
@@ -130,15 +158,15 @@ export async function POST(req: NextRequest) {
     })
       .then(embedding => {
         return prisma.strategicLog.update({
-          where: { id: strategicLog.id },
+          where: { id: result.strategicLog.id },
           data: { embedding: embeddingToString(embedding) },
         });
       })
       .then(() => {
-        console.log(`✅ Embedding generated for log ${strategicLog.id}`);
+        console.log(`✅ Embedding generated for log ${result.strategicLog.id}`);
       })
       .catch(error => {
-        console.error(`❌ Failed to generate embedding for log ${strategicLog.id}:`, error);
+        console.error(`❌ Failed to generate embedding for log ${result.strategicLog.id}:`, error);
       });
 
     // ============================================
@@ -148,7 +176,7 @@ export async function POST(req: NextRequest) {
       .then(({ syncLogToGraph }) => {
         return syncLogToGraph({
           userId: body.userId,
-          logId: strategicLog.id,
+          logId: result.strategicLog.id,
           weekOf: weekOf,
           weekNumber: ascentWeek,
           leverageBuilt: body.leverageBuilt,
@@ -157,19 +185,19 @@ export async function POST(req: NextRequest) {
           hadLeverage: !body.hadNoLeverage,
         });
       })
-      .then(result => {
-        if (result.success) {
-          console.log(`✅ Graph synced for log ${strategicLog.id}: ${result.topicsCreated} topics, fog=${result.fogDetected}`);
+      .then(syncResult => {
+        if (syncResult.success) {
+          console.log(`✅ Graph synced for log ${result.strategicLog.id}: ${syncResult.topicsCreated} topics, fog=${syncResult.fogDetected}`);
         } else {
-          console.warn(`⚠️ Graph sync incomplete for log ${strategicLog.id}: ${result.error}`);
+          console.warn(`⚠️ Graph sync incomplete for log ${result.strategicLog.id}: ${syncResult.error}`);
         }
       })
       .catch(error => {
-        console.error(`❌ Graph sync failed for log ${strategicLog.id}:`, error);
+        console.error(`❌ Graph sync failed for log ${result.strategicLog.id}:`, error);
       });
 
     // ============================================
-    // THE HEART: UPDATE STREAK (REFACTORED)
+    // THE HEART: UPDATE STREAK
     // ============================================
     const streakResult = await updateStreakOnLog(
       body.userId,
@@ -178,13 +206,15 @@ export async function POST(req: NextRequest) {
     );
 
     // ============================================
-    // RESPONSE: SUCCESS
+    // RESPONSE: SUCCESS (INCLUDING TOKEN DATA)
     // ============================================
     return NextResponse.json({
       success: true,
-      logId: strategicLog.id,
+      logId: result.strategicLog.id,
       weekNumber: ascentWeek,
       weekOf: weekOf.toISOString(),
+      tokensAwarded: 50,
+      newBalance: result.newBalance,
       streak: {
         current: streakResult.newStreak,
         longest: streakResult.longestStreak,

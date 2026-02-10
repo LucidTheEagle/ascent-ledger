@@ -73,8 +73,11 @@ export function StrategicLogForm({ userId, visionContext }: StrategicLogFormProp
         throw new Error(data.error || 'Failed to submit log');
       }
 
-      // Success: Redirect to Fog Check generation page
-      router.push(`/log/fog-check/${data.logId}`);
+      const fogCheckUrl = `/log/fog-check/${data.logId}`;
+      
+      router.push(
+        `/token-payday?amount=${data.tokensAwarded}&newBalance=${data.newBalance}&reason=WEEKLY_LOG&redirect=${encodeURIComponent(fogCheckUrl)}`
+      );
     } catch (err) {
       console.error('Submission error:', err);
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
