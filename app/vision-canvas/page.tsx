@@ -123,8 +123,14 @@ export default function VisionCanvasPage() {
 
       const data = await response.json()
       
-      // Redirect to Vision Result page
-      router.push(`/vision-canvas/result?id=${data.visionId}`)
+      // ============================================
+      // UPDATED: Redirect through token-payday page
+      // ============================================
+      const visionResultUrl = `/vision-canvas/result?id=${data.visionId}`
+      
+      router.push(
+        `/token-payday?amount=100&newBalance=${data.newBalance}&reason=VISION_COMPLETE&redirect=${encodeURIComponent(visionResultUrl)}`
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setProcessing(false)

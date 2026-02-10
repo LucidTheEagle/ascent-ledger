@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      return { visionCanvas, fogCheck }
+      return { visionCanvas, fogCheck, newBalance: updatedUser.tokenBalance }
     })
 
     // ============================================
@@ -233,11 +233,12 @@ export async function POST(request: NextRequest) {
         // Don't fail the request - graph sync is enhancement, not dependency
       });
 
-    // 6. RETURN SUCCESS
+    // 6. RETURN SUCCESS (INCLUDING NEW BALANCE)
     return NextResponse.json({
       success: true,
       visionId: result.visionCanvas.id,
       fogCheckId: result.fogCheck.id,
+      newBalance: result.newBalance, // NEW: Return balance for token-payday redirect
       message: 'Vision Canvas completed. +100 tokens earned.',
     })
 
