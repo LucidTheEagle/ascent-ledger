@@ -21,6 +21,7 @@ export function NavigationWrapper() {
     "/log/fog-check",
     "/recovery-checkin",
     "/token-payday",
+    "/tokens",
   ];
 
   // Check if current path starts with any of the hidden paths
