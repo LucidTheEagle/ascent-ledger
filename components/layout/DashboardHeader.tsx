@@ -1,10 +1,13 @@
 // ============================================
 // components/layout/DashboardHeader.tsx
 // UNIVERSAL DASHBOARD HEADER: Works for both ASCENT and RECOVERY modes
-// Props-based design for maximum flexibility
+// UPDATED: Checkpoint 13 - Token balance links to history page
 // ============================================
 
+'use client';
+
 import { ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { Flame } from 'lucide-react';
 import { TokenBalancePill } from '@/components/tokens/TokenBalancePill';
 
@@ -19,8 +22,6 @@ interface DashboardHeaderProps {
   currentStreak: number;
   /** Optional: Custom icon (e.g., Shield for Recovery mode) */
   icon?: ReactNode;
-  /** Optional: Click handler for token balance (future: link to token history) */
-  onTokenClick?: () => void;
 }
 
 export function DashboardHeader({
@@ -29,8 +30,16 @@ export function DashboardHeader({
   tokenBalance,
   currentStreak,
   icon,
-  onTokenClick,
 }: DashboardHeaderProps) {
+  const router = useRouter();
+
+  // ============================================
+  // HANDLER: Navigate to token history
+  // ============================================
+  const handleTokenClick = () => {
+    router.push('/tokens');
+  };
+
   return (
     <div className="flex flex-col gap-4 mb-6 md:mb-8 md:flex-row md:items-center md:justify-between">
       
@@ -60,10 +69,10 @@ export function DashboardHeader({
       ============================================ */}
       <div className="flex items-center gap-3 md:gap-4">
         
-        {/* Token Balance Pill */}
+        {/* Token Balance Pill (Clickable) */}
         <TokenBalancePill 
           balance={tokenBalance}
-          onClick={onTokenClick}
+          onClick={handleTokenClick}
         />
 
         {/* Streak Pill */}
