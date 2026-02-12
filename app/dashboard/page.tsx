@@ -58,6 +58,7 @@ export default async function DashboardPage() {
           subtitle={`Week ${currentWeek} of your ascent`}
           tokenBalance={user.tokenBalance}
           currentStreak={streakData.currentStreak}
+          mode='ASCENT'
         />
 
         {/* ============================================

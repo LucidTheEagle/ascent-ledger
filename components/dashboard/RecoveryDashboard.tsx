@@ -155,6 +155,7 @@ export function RecoveryDashboard({ data }: RecoveryDashboardProps) {
           subtitle={`Mission: Conservation · Week ${weeksSinceStart}`}
           tokenBalance={user.tokenBalance}
           currentStreak={streakData.currentStreak}
+          mode="RECOVERY"
           icon={<Shield className="h-8 w-8 text-amber-500" />}
         />
 
