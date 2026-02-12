@@ -1,32 +1,25 @@
 // lib/services/transition-service.ts
 /**
- * TRANSITION SERVICE
- * Detects when users are ready to transition from Recovery to Vision Track
- * UPDATED: Checkpoint 12 - Use centralized token service
+ * TRANSITION SERVICE - FINAL VERSION
+ * Uses existing recoveryStartDate field (no migration needed)
  */
 
 import { prisma } from '@/lib/prisma';
-import { awardTokens, TRANSACTION_TYPES } from '@/lib/services/token-service';
+import { awardTokens } from '@/lib/services/token-service';
 
 interface TransitionEligibility {
   isEligible: boolean;
   weeksStable: number;
   currentOxygenLevel: number;
+  daysInRecovery: number;
+  has14DaysPassed: boolean;
   message: string;
+  blockers: string[];
 }
 
-/**
- * Check if user is eligible to transition from Recovery to Vision Track
- * 
- * Criteria: 3+ weeks at oxygen level 6+
- * 
- * @param userId - User ID to check
- * @returns Transition eligibility details
- */
 export async function checkTransitionEligibility(
   userId: string
 ): Promise<TransitionEligibility> {
-  // Get active crisis protocol
   const protocol = await prisma.crisisProtocol.findFirst({
     where: {
       userId,
@@ -36,7 +29,7 @@ export async function checkTransitionEligibility(
       recoveryCheckins: {
         where: {
           oxygenLevelCurrent: {
-            gte: 6, // Oxygen level 6 or higher
+            gte: 6,
           },
         },
         orderBy: {
@@ -46,43 +39,77 @@ export async function checkTransitionEligibility(
     },
   });
 
-  if (!protocol) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      recoveryStartDate: true,
+    },
+  });
+
+  if (!protocol || !user) {
     return {
       isEligible: false,
       weeksStable: 0,
       currentOxygenLevel: 0,
+      daysInRecovery: 0,
+      has14DaysPassed: false,
       message: 'No active recovery protocol found',
+      blockers: ['No active recovery protocol'],
     };
   }
 
+  // CHECK 1: 14-DAY LOCK
+  const recoveryStartDate = user.recoveryStartDate;
+  let daysInRecovery = 0;
+  let has14DaysPassed = false;
+
+  if (recoveryStartDate) {
+    const now = new Date();
+    const msInRecovery = now.getTime() - new Date(recoveryStartDate).getTime();
+    daysInRecovery = Math.floor(msInRecovery / (1000 * 60 * 60 * 24));
+    has14DaysPassed = daysInRecovery >= 14;
+  } else {
+    // Legacy users: no lock
+    has14DaysPassed = true;
+    daysInRecovery = 999;
+  }
+
+  // CHECK 2: STABILITY
   const currentOxygenLevel = protocol.oxygenLevelCurrent || 0;
   const stableWeeks = protocol.recoveryCheckins.length;
+  const hasStability = stableWeeks >= 3 && currentOxygenLevel >= 6;
 
-  // Check if meets criteria: 3+ weeks at oxygen 6+
-  const isEligible = stableWeeks >= 3 && currentOxygenLevel >= 6;
+  const blockers: string[] = [];
+  
+  if (!has14DaysPassed) {
+    const daysRemaining = 14 - daysInRecovery;
+    blockers.push(`Minimum 14-day commitment (${daysRemaining} days remaining)`);
+  }
+  
+  if (!hasStability) {
+    const weeksRemaining = Math.max(0, 3 - stableWeeks);
+    blockers.push(`Need ${weeksRemaining} more stable week(s) at oxygen 6+`);
+  }
+  
+  if (currentOxygenLevel < 6) {
+    blockers.push(`Current oxygen level too low (${currentOxygenLevel}/10)`);
+  }
+
+  const isEligible = has14DaysPassed && hasStability;
 
   return {
     isEligible,
     weeksStable: stableWeeks,
     currentOxygenLevel,
+    daysInRecovery,
+    has14DaysPassed,
     message: isEligible
       ? `You've been stable for ${stableWeeks} weeks at oxygen level ${currentOxygenLevel}/10. You're ready!`
-      : `Keep recovering. You need ${3 - stableWeeks} more stable week(s) at oxygen level 6+.`,
+      : `Not yet ready to transition. ${blockers.join('. ')}.`,
+    blockers,
   };
 }
 
-/**
- * Transition user from Recovery Track to Vision Track
- * 
- * Steps:
- * 1. Mark crisis protocol as completed
- * 2. Switch user to ASCENT mode
- * 3. Award bonus tokens (+150)
- * 
- * @param userId - User ID to transition
- * @param protocolId - Crisis protocol ID to complete
- * @returns Success status with new balance
- */
 export async function transitionToVisionTrack(
   userId: string,
   protocolId: string
@@ -93,7 +120,6 @@ export async function transitionToVisionTrack(
   newBalance?: number;
 }> {
   try {
-    // Verify protocol belongs to user
     const protocol = await prisma.crisisProtocol.findFirst({
       where: {
         id: protocolId,
@@ -108,7 +134,6 @@ export async function transitionToVisionTrack(
       };
     }
 
-    // Check eligibility
     const eligibility = await checkTransitionEligibility(userId);
 
     if (!eligibility.isEligible) {
@@ -118,9 +143,7 @@ export async function transitionToVisionTrack(
       };
     }
 
-    // Execute transition in transaction
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Mark protocol as completed
       await tx.crisisProtocol.update({
         where: { id: protocolId },
         data: {
@@ -128,16 +151,14 @@ export async function transitionToVisionTrack(
         },
       });
 
-      // 2. Switch user to ASCENT mode
       await tx.user.update({
         where: { id: userId },
         data: {
           operatingMode: 'ASCENT',
+          recoveryStartDate: null, // Clear the lock
         },
       });
 
-      // 3. Award bonus tokens (+150) using centralized service
-      // This ensures consistent token tracking and transaction recording
       const tokenResult = await awardTokens({
         userId,
         amount: 150,
@@ -151,7 +172,7 @@ export async function transitionToVisionTrack(
       };
     });
 
-    console.log(`✅ User ${userId} transitioned to ASCENT mode: +150 tokens, newBalance=${result.newBalance}`);
+    console.log(`✅ User ${userId} transitioned to ASCENT. 14-day lock cleared.`);
 
     return {
       success: true,
@@ -168,12 +189,6 @@ export async function transitionToVisionTrack(
   }
 }
 
-/**
- * Get weeks stable count for display
- * 
- * @param userId - User ID
- * @returns Number of consecutive weeks at oxygen 6+
- */
 export async function getWeeksStable(userId: string): Promise<number> {
   const protocol = await prisma.crisisProtocol.findFirst({
     where: {

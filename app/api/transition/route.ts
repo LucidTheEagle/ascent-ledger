@@ -1,8 +1,7 @@
 // app/api/transition/route.ts
 /**
  * TRANSITION API
- * Handles Recovery → Vision Track transitions
- * UPDATED: Checkpoint 12 - Return newBalance for token-payday flow
+ * UPDATED: Returns detailed eligibility data for Flight Check modal
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -51,7 +50,7 @@ export async function POST(req: NextRequest) {
       success: true,
       message: result.message,
       tokensAwarded: result.tokensAwarded,
-      newBalance: result.newBalance, // NEW: For token-payday redirect
+      newBalance: result.newBalance,
     });
   } catch (error) {
     console.error('[TRANSITION_API_ERROR]', error);
@@ -62,7 +61,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET - Check eligibility
+// GET - Check eligibility (UPDATED: Returns detailed Flight Check data)
 export async function GET() {
   try {
     const supabase = await createClient();
@@ -78,11 +77,15 @@ export async function GET() {
 
     const eligibility = await checkTransitionEligibility(user.id);
 
+    // Return comprehensive eligibility data for Flight Check modal
     return NextResponse.json({
       isEligible: eligibility.isEligible,
       weeksStable: eligibility.weeksStable,
       currentOxygenLevel: eligibility.currentOxygenLevel,
+      daysInRecovery: eligibility.daysInRecovery,       // NEW
+      has14DaysPassed: eligibility.has14DaysPassed,     // NEW
       message: eligibility.message,
+      blockers: eligibility.blockers,                   // NEW
     });
   } catch (error) {
     console.error('[TRANSITION_CHECK_ERROR]', error);
