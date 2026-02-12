@@ -56,7 +56,7 @@ export default async function TokenHistoryPage() {
             </p>
             <a
               href="/dashboard"
-              className="inline-block px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg font-semibold hover:opacity-90"
+              className="inline-block px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-ascent-white rounded-lg font-semibold hover:opacity-90"
             >
               Back to Dashboard
             </a>
