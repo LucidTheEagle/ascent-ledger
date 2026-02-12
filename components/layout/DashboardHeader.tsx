@@ -1,7 +1,7 @@
 // ============================================
 // components/layout/DashboardHeader.tsx
 // UNIVERSAL DASHBOARD HEADER: Works for both ASCENT and RECOVERY modes
-// UPDATED: Checkpoint 13 - Token balance links to history page
+// UPDATED: Checkpoint 14 - Added mode badge indicator
 // ============================================
 
 'use client';
@@ -10,6 +10,7 @@ import { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Flame } from 'lucide-react';
 import { TokenBalancePill } from '@/components/tokens/TokenBalancePill';
+import { ModeBadge } from '@/components/dashboard/ModeBadge';
 
 interface DashboardHeaderProps {
   /** Main title (e.g., "Clear Sky, Victor" or "Recovery Mode") */
@@ -20,6 +21,8 @@ interface DashboardHeaderProps {
   tokenBalance: number;
   /** User's current streak */
   currentStreak: number;
+  /** Current operating mode */
+  mode: 'ASCENT' | 'RECOVERY';
   /** Optional: Custom icon (e.g., Shield for Recovery mode) */
   icon?: ReactNode;
 }
@@ -29,6 +32,7 @@ export function DashboardHeader({
   subtitle,
   tokenBalance,
   currentStreak,
+  mode,
   icon,
 }: DashboardHeaderProps) {
   const router = useRouter();
@@ -65,10 +69,13 @@ export function DashboardHeader({
       </div>
 
       {/* ============================================
-          RIGHT SIDE: Token Balance + Streak Pills
+          RIGHT SIDE: Mode Badge + Token + Streak Pills
       ============================================ */}
       <div className="flex items-center gap-3 md:gap-4">
         
+        {/* Mode Badge (NEW) */}
+        <ModeBadge mode={mode} />
+
         {/* Token Balance Pill (Clickable) */}
         <TokenBalancePill 
           balance={tokenBalance}
