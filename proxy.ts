@@ -1,12 +1,15 @@
 // ============================================
-// middleware.ts (ROOT LEVEL)
-// Fixed for Next.js 16 - Uses updateSession pattern
+// proxy.ts (Next.js 16 Proxy)
+// Sprint 5 - Checkpoint 9 (Pre-Homepage)
+// Supabase Auth Protection for Routes
+// FIXED: Export named 'proxy' function (not 'middleware')
 // ============================================
 
 import { type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
-export async function middleware(request: NextRequest) {
+// CRITICAL: Must be named 'proxy' (not 'middleware')
+export async function proxy(request: NextRequest) {
   return await updateSession(request);
 }
 
@@ -16,9 +19,9 @@ export const config = {
      * Match all request paths except:
      * - _next/static (static files)
      * - _next/image (image optimization files)
-     * - favicon.ico, sitemap.xml, robots.txt (metadata files)
-     * - public folder files
+     * - favicon.ico (favicon file)
+     * - public folder
      */
-    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
