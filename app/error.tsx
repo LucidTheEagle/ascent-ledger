@@ -3,7 +3,7 @@
 // NEXT.JS ERROR PAGE - Route-level error handling
 // ============================================
 
-
+"use client";
 import { useEffect } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
