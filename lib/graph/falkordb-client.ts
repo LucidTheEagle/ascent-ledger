@@ -1,8 +1,10 @@
 // ============================================
 // lib/graph/falkordb-client.ts
 // THE SYNAPSE: FalkorDB Connection Client
-// Role: Graph database interface for pattern detection
-// FIXED: Uses FalkorDB.connect() method with proper socket options
+// FIXED: Sprint 5 - Checkpoint 9 (Pre-Homepage)
+// - Bulletproof singleton pattern (no race conditions)
+// - Graceful degradation (fails silently in development)
+// - BigInt polyfill for Next.js compatibility
 // ============================================
 
 import type { GraphQueryResult } from 'falkordb';
@@ -17,7 +19,7 @@ interface FalkorClient {
 
 // Singleton instance
 let graphClient: FalkorClient | null = null;
-let isInitializing = false;
+let initializationPromise: Promise<FalkorClient> | null = null;
 
 /**
  * Get or create FalkorDB client instance
@@ -27,24 +29,39 @@ let isInitializing = false;
  * @throws Error if connection fails
  */
 export async function getGraphClient(): Promise<FalkorClient> {
+  // Return existing client
   if (graphClient) return graphClient;
 
-  if (isInitializing) {
-    throw new Error('[FalkorDB] Concurrent initialization detected.');
+  // Wait for ongoing initialization
+  if (initializationPromise) {
+    return initializationPromise;
   }
 
+  // Start new initialization
+  initializationPromise = initializeClient();
+  
+  try {
+    graphClient = await initializationPromise;
+    return graphClient;
+  } finally {
+    initializationPromise = null;
+  }
+}
+
+/**
+ * Initialize FalkorDB client (internal function)
+ */
+async function initializeClient(): Promise<FalkorClient> {
   const url = process.env.FALKORDB_URL;
   const password = process.env.FALKORDB_PASSWORD;
   const username = process.env.FALKORDB_USERNAME || 'falkordb';
 
   if (!url) {
-    throw new Error('FALKORDB_URL is not configured.');
+    throw new Error('[FalkorDB] FALKORDB_URL is not configured.');
   }
 
   try {
-    isInitializing = true;
-
-    // Import FalkorDB as named export
+    // Import FalkorDB dynamically
     const { FalkorDB } = await import('falkordb');
     
     // CRITICAL: Use FalkorDB.connect() method (NOT constructor!)
@@ -52,7 +69,7 @@ export async function getGraphClient(): Promise<FalkorClient> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const FalkorDBWithConnect = FalkorDB as any;
     
-    graphClient = await FalkorDBWithConnect.connect({
+    const client = await FalkorDBWithConnect.connect({
       url,
       username,
       password: password || undefined,
@@ -63,14 +80,11 @@ export async function getGraphClient(): Promise<FalkorClient> {
     }) as FalkorClient;
 
     console.log('✅ [FalkorDB] Connection initialized');
-    return graphClient;
+    return client;
   } catch (error) {
-    graphClient = null;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('❌ [FalkorDB] Connection failed:', errorMessage);
     throw new Error(`[FalkorDB] Connection failed: ${errorMessage}`);
-  } finally {
-    isInitializing = false;
   }
 }
 
@@ -78,10 +92,10 @@ export async function executeQuery(
   query: string,
   params: Record<string, unknown> = {}
 ): Promise<GraphQueryResult> {
-  const client = await getGraphClient();
-  const graphName = getGraphName();
-
   try {
+    const client = await getGraphClient();
+    const graphName = getGraphName();
+
     const graph = client.selectGraph(graphName);
     const result = await graph.query(query, params);
     
