@@ -1,7 +1,12 @@
 import type { NextConfig } from 'next';
 
-// Oracle's Principle: "Next.js 14/15 is already heavily optimized.
+// ============================================
+// ASCENT LEDGER - NEXT.JS CONFIGURATION
+// ============================================
+// Sprint 5 - Checkpoint 3: Source Map Fix
+// Oracle's Principle: "Next.js is already heavily optimized.
 // We only add what is strictly necessary."
+// ============================================
 
 const nextConfig: NextConfig = {
   // Performance optimizations (minimal interference)
@@ -27,19 +32,17 @@ const nextConfig: NextConfig = {
     } : false,
   },
 
-  // Bundle analyzer (uncomment when needed)
-  // webpack: (config, { isServer }) => {
-  //   if (!isServer) {
-  //     const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
-  //     config.plugins.push(
-  //       new BundleAnalyzerPlugin({
-  //         analyzerMode: 'static',
-  //         openAnalyzer: false,
-  //       })
-  //     );
-  //   }
-  //   return config;
-  // },
+  // ============================================
+  // SOURCE MAP CONFIGURATION (TURBOPACK)
+  // ============================================
+  // Fix: Disable source maps to prevent "Invalid source map" warnings
+  productionBrowserSourceMaps: false,
+
+  // Turbopack configuration (Next.js 16 default)
+  turbopack: {
+    // Empty config to suppress Turbopack/webpack warning
+    // This tells Next.js we're intentionally using Turbopack
+  },
 };
 
 export default nextConfig;
