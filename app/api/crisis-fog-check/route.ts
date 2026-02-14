@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateCrisisFogCheck, saveFogCheckToDB } from '@/lib/services/fog-check-service';
+import { rateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/upstash/rate-limiter';
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,6 +21,19 @@ export async function POST(req: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // ============================================
+    // RATE LIMITING - STRICT (AI generation is expensive)
+    // ============================================
+    const rateLimitResult = await rateLimit(req, {
+      limit: RATE_LIMITS.STRICT.limit,      // 5 requests
+      window: RATE_LIMITS.STRICT.window,    // per hour
+      identifier: `user:${user.id}`,
+    });
+
+    if (!rateLimitResult.success) {
+      return createRateLimitResponse(rateLimitResult);
     }
 
     const body = await req.json();

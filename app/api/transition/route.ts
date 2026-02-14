@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { rateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/upstash/rate-limiter';
 import {
   checkTransitionEligibility,
   transitionToVisionTrack,
@@ -23,6 +24,19 @@ export async function POST(req: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // ============================================
+    // RATE LIMITING - STRICT (Transition is critical + awards tokens)
+    // ============================================
+    const rateLimitResult = await rateLimit(req, {
+      limit: RATE_LIMITS.STRICT.limit,      // 5 requests
+      window: RATE_LIMITS.STRICT.window,    // per hour
+      identifier: `user:${user.id}`,
+    });
+
+    if (!rateLimitResult.success) {
+      return createRateLimitResponse(rateLimitResult);
     }
 
     const body = await req.json();

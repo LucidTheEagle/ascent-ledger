@@ -1,8 +1,15 @@
+// ============================================
 // FILE: app/api/vision-canvas/route.ts
+// ============================================
+// Sprint 5 - Checkpoint 8: Rate Limiting Added
+// Protects vision creation from abuse
+// ============================================
+
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import Groq from 'groq-sdk'
+import { rateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/upstash/rate-limiter'
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -52,7 +59,9 @@ Generate the Vision Architect response:
 
 export async function POST(request: NextRequest) {
   try {
+    // ============================================
     // 1. AUTHENTICATE USER
+    // ============================================
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
@@ -63,7 +72,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2. PARSE REQUEST BODY
+    // ============================================
+    // 2. RATE LIMITING (NEW - CHECKPOINT 8)
+    // ============================================
+    // STRICT limit: 5 visions per hour (this is expensive!)
+    // Uses user ID for accurate tracking
+    const rateLimitResult = await rateLimit(request, {
+      limit: RATE_LIMITS.STRICT.limit,      // 5 requests
+      window: RATE_LIMITS.STRICT.window,    // per hour
+      identifier: `user:${user.id}`,        // Track by user ID
+    })
+
+    // Block if rate limit exceeded
+    if (!rateLimitResult.success) {
+      return createRateLimitResponse(rateLimitResult)
+    }
+
+    // ============================================
+    // 3. PARSE REQUEST BODY
+    // ============================================
     const body = await request.json()
     const {
       currentState,
@@ -74,7 +101,9 @@ export async function POST(request: NextRequest) {
       antiGoal,
     } = body
 
-    // 3. VALIDATE INPUT
+    // ============================================
+    // 4. VALIDATE INPUT
+    // ============================================
     if (!currentState || !desiredState || !successDefinition || 
         !uniqueSkills || !purposeStatement || !antiGoal) {
       return NextResponse.json(
@@ -98,7 +127,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 4. GENERATE AI VISION STATEMENT with GROQ
+    // ============================================
+    // 5. GENERATE AI VISION STATEMENT with GROQ
+    // ============================================
     const prompt = VISION_ARCHITECT_PROMPT
       .replace('{currentState}', currentState)
       .replace('{desiredState}', desiredState)
@@ -124,7 +155,9 @@ export async function POST(request: NextRequest) {
       throw new Error('Invalid AI response structure')
     }
 
-    // 5. SAVE TO DATABASE (Self-Healing Transaction)
+    // ============================================
+    // 6. SAVE TO DATABASE (Self-Healing Transaction)
+    // ============================================
     const result = await prisma.$transaction(async (tx) => {
       
       // CRITICAL FIX: Ensure User exists in public.users table
@@ -202,7 +235,7 @@ export async function POST(request: NextRequest) {
     })
 
     // ============================================
-    // THE BRAIN: SYNC TO GRAPH (ASYNC)
+    // 7. THE BRAIN: SYNC TO GRAPH (ASYNC)
     // ============================================
     // Sync vision to FalkorDB for pattern detection
     // This runs asynchronously - user doesn't wait for it
@@ -233,12 +266,14 @@ export async function POST(request: NextRequest) {
         // Don't fail the request - graph sync is enhancement, not dependency
       });
 
-    // 6. RETURN SUCCESS (INCLUDING NEW BALANCE)
+    // ============================================
+    // 8. RETURN SUCCESS (INCLUDING NEW BALANCE)
+    // ============================================
     return NextResponse.json({
       success: true,
       visionId: result.visionCanvas.id,
       fogCheckId: result.fogCheck.id,
-      newBalance: result.newBalance, // NEW: Return balance for token-payday redirect
+      newBalance: result.newBalance,
       message: 'Vision Canvas completed. +100 tokens earned.',
     })
 

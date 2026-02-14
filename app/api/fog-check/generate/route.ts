@@ -10,6 +10,7 @@ import { generateFogCheckForLog, saveFogCheck } from '@/lib/services/fog-check-s
 import { awardTokens, TOKEN_AMOUNTS, TRANSACTION_TYPES } from '@/lib/services/token-service';
 import type { FogCheckResponse } from '@/lib/contracts/fog-check';
 import { createErrorResponse, withRetry, AppError } from '@/lib/utils/error-handler';
+import { rateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/upstash/rate-limiter';
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,6 +26,19 @@ export async function POST(req: NextRequest) {
 
     if (authError || !user) {
       throw new AppError('Unauthorized. Please log in again.', 401);
+    }
+
+    // ============================================
+    // RATE LIMITING - AUTHENTICATED (Fog checks are frequent)
+    // ============================================
+    const rateLimitResult = await rateLimit(req, {
+      limit: RATE_LIMITS.AUTHENTICATED.limit,      // 100 requests
+      window: RATE_LIMITS.AUTHENTICATED.window,    // per hour
+      identifier: `user:${user.id}`,
+    });
+
+    if (!rateLimitResult.success) {
+      return createRateLimitResponse(rateLimitResult);
     }
 
     // ============================================

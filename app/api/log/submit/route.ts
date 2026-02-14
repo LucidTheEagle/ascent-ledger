@@ -13,6 +13,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentWeekStartDate, getAscentWeek } from '@/lib/utils/week-calculator';
 import { generateLogEmbedding, embeddingToString } from '@/lib/ai/embeddings';
 import { updateStreakOnLog } from '@/lib/services/streak-service';
+import { rateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/upstash/rate-limiter'
 
 // Validation schema
 interface LogSubmitBody {
@@ -87,6 +88,21 @@ export async function POST(req: NextRequest) {
     }
 
     // ============================================
+    // RATE LIMITING (CHECKPOINT 8)
+    // ============================================
+    // AUTHENTICATED limit: 100 logs per hour (prevents spam, allows retries)
+    const rateLimitResult = await rateLimit(req, {
+      limit: RATE_LIMITS.AUTHENTICATED.limit,      // 100 requests
+      window: RATE_LIMITS.AUTHENTICATED.window,    // per hour
+      identifier: `user:${user.id}`,               // Track by user ID
+    });
+
+    // Block if rate limit exceeded
+    if (!rateLimitResult.success) {
+      return createRateLimitResponse(rateLimitResult);
+    }
+
+    // ============================================
     // WEEK CALCULATION
     // ============================================
     const userData = await prisma.user.findUnique({
@@ -102,7 +118,6 @@ export async function POST(req: NextRequest) {
     }
 
     const ascentWeek = getAscentWeek(userData.createdAt);
-
     // ============================================
     // THE SOUL: SAVE THE LOG + AWARD TOKENS
     // ============================================

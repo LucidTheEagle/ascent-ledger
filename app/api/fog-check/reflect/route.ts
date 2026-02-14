@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { rateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/upstash/rate-limiter';
 
 interface ReflectRequest {
   fogCheckId: string;
@@ -41,6 +42,20 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
+
+    // ============================================
+    // RATE LIMITING - AUTHENTICATED (Saving reflections)
+    // ============================================
+    const rateLimitResult = await rateLimit(req, {
+      limit: RATE_LIMITS.AUTHENTICATED.limit,      // 100 requests
+      window: RATE_LIMITS.AUTHENTICATED.window,    // per hour
+      identifier: `user:${user.id}`,
+    });
+
+    if (!rateLimitResult.success) {
+      return createRateLimitResponse(rateLimitResult);
+    }
+
 
     // Verify ownership of Fog Check
     const fogCheck = await prisma.fogCheck.findUnique({
