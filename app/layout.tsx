@@ -19,6 +19,13 @@ const jetbrainsMono = JetBrains_Mono({
 
 // SEO Metadata
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || 
+    process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : 'http://localhost:3000'
+  ),
+  
   title: "Ascent Ledger | AI Mentorship OS for Career Clarity",
   description: "Stop mistaking motion for progress. Ascent Ledger turns your fog into a flight plan. From unclear to unstoppable.",
   keywords: [
