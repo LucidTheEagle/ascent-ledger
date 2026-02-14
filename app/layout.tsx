@@ -4,6 +4,7 @@ import "./globals.css";
 import { NavigationWrapper } from "@/components/wrapper/NavigationWrapper";
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import OfflineDetector from '@/components/shared/OfflineDetector';
+import { PostHogProvider } from "./providers";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -133,11 +134,13 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
+        <PostHogProvider>
         <ErrorBoundary>
           <OfflineDetector />
           <NavigationWrapper />
           {children}
         </ErrorBoundary>
+        </PostHogProvider>
       </body>
     </html>
   );
