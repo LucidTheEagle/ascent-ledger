@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/purity */
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -18,15 +19,91 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
+// --- COMPONENT: SYSTEM BOOT H2 ---
+const SystemBootH2 = ({ text }: { text: string }) => {
+  const prefersReducedMotion = useReducedMotion();
+  const [bootPhase, setBootPhase] = useState<"boot" | "loading" | "ready">(
+    prefersReducedMotion ? "ready" : "boot"
+  );
+  const [loadProgress, setLoadProgress] = useState(0);
+
+  useEffect(() => {
+    if (prefersReducedMotion) return;
+
+    // Boot sequence timing
+    const phase1 = setTimeout(() => setBootPhase("loading"), 400);
+    
+    // Progress bar animation
+    const progressInterval = setInterval(() => {
+      setLoadProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(progressInterval);
+          return 100;
+        }
+        return prev + 5;
+      });
+    }, 40); // 2s total to reach 100%
+
+    const phase2 = setTimeout(() => setBootPhase("ready"), 2400);
+
+    return () => {
+      clearTimeout(phase1);
+      clearTimeout(phase2);
+      clearInterval(progressInterval);
+    };
+  }, [prefersReducedMotion]);
+
+  if (prefersReducedMotion || bootPhase === "ready") {
+    return (
+      <h2 
+        id="trinity-heading"
+        className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-white via-ascent-blue to-ascent-purple bg-clip-text text-transparent tracking-tight"
+      >
+        {text}
+      </h2>
+    );
+  }
+
+  if (bootPhase === "boot") {
+    return (
+      <div className="text-sm md:text-base font-mono text-ascent-gray tracking-wider">
+        <motion.span
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+        >
+          INITIALIZING ASCENT SYSTEM...
+        </motion.span>
+      </div>
+    );
+  }
+
+  // Loading phase
+  return (
+    <div className="space-y-4 w-full max-w-md">
+      <div className="text-xs md:text-sm font-mono text-ascent-blue uppercase tracking-wider">
+        LOADING CORE MODULES
+      </div>
+      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+        <motion.div
+          className="h-full bg-gradient-to-r from-ascent-blue via-ascent-purple to-ascent-blue rounded-full"
+          initial={{ width: 0 }}
+          animate={{ width: `${loadProgress}%` }}
+        />
+      </div>
+      <div className="text-xs font-mono text-ascent-gray text-right">
+        {loadProgress}%
+      </div>
+    </div>
+  );
+};
+
 // --- COMPONENT: LIBRARY VS CAREER QUOTE ---
 const LibraryCareerQuote = () => {
   const prefersReducedMotion = useReducedMotion();
   const [libraryColor, setLibraryColor] = useState(
     prefersReducedMotion ? "#EF4444" : "#000000"
   );
-  const [careerRevealed, setCareerRevealed] = useState(
-    prefersReducedMotion
-  );
+  const [careerRevealed, setCareerRevealed] = useState(prefersReducedMotion);
 
   useEffect(() => {
     if (prefersReducedMotion) return;
@@ -45,7 +122,6 @@ const LibraryCareerQuote = () => {
       clearTimeout(careerTimer);
     };
   }, [prefersReducedMotion]);
-  
 
   return (
     <div className="relative z-20 p-4 rounded-xl bg-ascent-obsidian/40 backdrop-blur-sm border border-white/5">
@@ -83,6 +159,19 @@ const LibraryCareerQuote = () => {
         </motion.span>
         .
       </p>
+      {/* ENHANCEMENT: Add diagnostic subtext */}
+      <div className="mt-4 pt-4 border-t border-white/10">
+        <div className="text-xs font-mono text-ascent-gray/60 space-y-1">
+          <div className="flex justify-between">
+            <span>PATTERN DETECTED:</span>
+            <span className="text-ascent-blue">DEPTH &gt; BREADTH</span>
+          </div>
+          <div className="flex justify-between">
+            <span>DIAGNOSIS:</span>
+            <span className="text-ascent-green">SUSTAINABLE &#10003;</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -103,7 +192,7 @@ const EvervaultBackground = () => {
   }, []);
 
   function onMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent) {
-    if (prefersReducedMotion) return; // Skip if reduced motion
+    if (prefersReducedMotion) return;
     const { left, top } = currentTarget.getBoundingClientRect();
     mouseX.set(clientX - left);
     mouseY.set(clientY - top);
@@ -145,26 +234,80 @@ const ChatBubble = ({ role, text, delay }: { role: "system" | "user", text: stri
   );
 };
 
-export function Trinity() {
+// --- COMPONENT: LIVE TERMINAL LOG ---
+const LiveTerminalLog = () => {
   const prefersReducedMotion = useReducedMotion();
-  const [h2Phase, setH2Phase] = useState<"gray" | "white" | "gradient">(
-    prefersReducedMotion ? "gradient" : "gray"
-  );
+  const [visibleLogs, setVisibleLogs] = useState<number>(prefersReducedMotion ? 3 : 0);
+  const [showCursor, setShowCursor] = useState(true);
 
-  // Simulated Log Data
   const logs = [
-    { text: "Identity Verified", status: "complete" },
-    { text: "Fog Density: 12% (Clearing)", status: "active" },
-    { text: "Ascent Protocol Initiated", status: "pending" }
+    { text: "Scanning user patterns...", status: "complete" },
+    { text: "Identity verified: Senior IC", status: "complete" },
+    { text: "Fog density: 12% (clearing)", status: "active" },
   ];
 
   useEffect(() => {
     if (prefersReducedMotion) return;
 
-    const p1 = setTimeout(() => setH2Phase("white"), 500);
-    const p2 = setTimeout(() => setH2Phase("gradient"), 1000);
-    return () => { clearTimeout(p1); clearTimeout(p2); };
+    // Stagger log reveals
+    const timers = [
+      setTimeout(() => setVisibleLogs(1), 500),
+      setTimeout(() => setVisibleLogs(2), 1200),
+      setTimeout(() => setVisibleLogs(3), 1900),
+    ];
+
+    // Cursor blink
+    const cursorInterval = setInterval(() => {
+      setShowCursor(prev => !prev);
+    }, 500);
+
+    return () => {
+      timers.forEach(clearTimeout);
+      clearInterval(cursorInterval);
+    };
   }, [prefersReducedMotion]);
+
+  return (
+    <div className="space-y-3 flex-1 overflow-hidden">
+      {logs.slice(0, visibleLogs).map((log, i) => (
+        <motion.div 
+          key={i}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex items-center gap-3 text-sm"
+        >
+          <span className={cn(
+            "text-[10px]",
+            log.status === "complete" ? "text-ascent-green" : "text-ascent-blue"
+          )}>
+            {log.status === "complete" ? "✓" : ">"}
+          </span>
+          <span className="text-white/80 font-mono text-xs md:text-sm truncate">
+            {log.text}
+          </span>
+        </motion.div>
+      ))}
+      {/* Terminal cursor */}
+      {visibleLogs === 3 && (
+        <div className="flex items-center gap-3 text-sm">
+          <span className="text-[10px] text-ascent-blue">{'>'}</span>
+          <span className="text-white/60 font-mono text-xs">
+            Next checkpoint: 4 days
+            <motion.span
+              animate={{ opacity: showCursor ? 1 : 0 }}
+              className="ml-1 text-ascent-blue"
+            >
+              _
+            </motion.span>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export function Trinity() {
+  const prefersReducedMotion = useReducedMotion();
 
   // Define cards for mobile carousel
   const carouselCards = [
@@ -201,16 +344,7 @@ export function Trinity() {
                 <span className="text-xs font-mono text-ascent-green uppercase">System Log</span>
               </div>
             </div>
-            <div className="space-y-3 flex-1 overflow-hidden">
-              {logs.map((log, i) => (
-                <div key={i} className="flex items-center gap-3 text-sm">
-                  <span className={cn("text-[10px]", log.status === "complete" ? "text-ascent-green" : "text-ascent-gray")}>
-                    {log.status === "complete" ? "✓" : ">"}
-                  </span>
-                  <span className="text-white/80 font-mono text-xs truncate">{log.text}</span>
-                </div>
-              ))}
-            </div>
+            <LiveTerminalLog />
           </div>
         </div>
       ),
@@ -238,7 +372,7 @@ export function Trinity() {
     <AuroraBackground className="bg-ascent-black">
       <section className="relative w-full py-20 px-4 md:px-6 flex flex-col items-center">
         
-        {/* HEADER */}
+        {/* ENHANCED HEADER - System Boot Sequence */}
         <motion.div
           initial="initial"
           whileInView="animate"
@@ -246,18 +380,7 @@ export function Trinity() {
           variants={prefersReducedMotion ? undefined : fadeInVariants}
           className="text-center mb-16 relative z-10"
         >
-          <h2 
-            id="trinity-heading"
-            className={cn(
-              "text-4xl md:text-6xl font-bold transition-all duration-700 tracking-tight",
-              h2Phase === "gray" ? "text-ascent-gray" : 
-              h2Phase === "white" ? "text-white" : 
-              "bg-gradient-to-r from-white via-ascent-blue to-ascent-purple bg-clip-text text-transparent"
-            )}
-            style={{ willChange: prefersReducedMotion ? "auto" : "color" }}
-          >
-            {COPY.trinity.h2}
-          </h2>
+          <SystemBootH2 text={COPY.trinity.h2} />
         </motion.div>
 
         {/* MOBILE: CAROUSEL */}
@@ -303,7 +426,7 @@ export function Trinity() {
             </CardSpotlight>
           </motion.div>
 
-          {/* Strategic Log */}
+          {/* Strategic Log - ENHANCED WITH LIVE TERMINAL */}
           <motion.div
             variants={prefersReducedMotion ? undefined : slideUpVariants}
             initial="initial"
@@ -323,22 +446,7 @@ export function Trinity() {
                       </div>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                    </div>
-                   <div className="space-y-3 flex-1 overflow-hidden">
-                      {logs.map((log, i) => (
-                        <motion.div 
-                          key={i}
-                          initial={{ opacity: 0, x: -20 }}
-                          whileInView={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.5 + (i * 0.2) }}
-                          className="flex items-center gap-3 text-sm"
-                        >
-                           <span className={cn("text-[10px]", log.status === "complete" ? "text-ascent-green" : "text-ascent-gray")}>
-                             {log.status === "complete" ? "✓" : ">"}
-                           </span>
-                           <span className="text-white/80 font-mono text-xs md:text-sm truncate">{log.text}</span>
-                        </motion.div>
-                      ))}
-                   </div>
+                   <LiveTerminalLog />
                    <Link href="#" className="mt-auto self-end text-xs font-mono text-ascent-green/70 hover:text-ascent-green flex items-center gap-1 transition-colors">
                       FULL LOG ACCESS <span className="text-[10px]">↗</span>
                    </Link>
@@ -346,7 +454,7 @@ export function Trinity() {
              </div>
           </motion.div>
 
-          {/* Fog Check */}
+          {/* Fog Check - ENHANCED WITH DIAGNOSTIC */}
           <motion.div
             variants={prefersReducedMotion ? undefined : slideUpVariants}
             initial="initial"
