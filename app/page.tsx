@@ -15,6 +15,15 @@ const Fog = dynamic(
   }
 );
 
+// ✅ FIXED: Changed mod.Problem to mod.ProblemSection
+const ProblemSection = dynamic(
+  () => import('@/components/landing/sections/ProblemSection').then(mod => ({ default: mod.ProblemSection })),
+  {
+    loading: () => <div className="w-full min-h-[80vh] bg-ascent-black" />,
+    ssr: true,
+  }
+);
+
 const Trinity = dynamic(
   () => import('@/components/landing/sections/Trinity').then(mod => ({ default: mod.Trinity })),
   {
@@ -42,11 +51,9 @@ const Footer = dynamic(
 export default function Home() {
   return (
     <>
-
       <main className="flex min-h-screen flex-col items-center justify-between bg-ascent-black overflow-x-hidden">
         
         {/* Hero loads instantly (Above the fold) */}
-        {/* ADDED: w-full to ensure the background spans the whole screen */}
         <section aria-labelledby="hero-heading" className="w-full">
           <Hero />
         </section>
@@ -54,6 +61,11 @@ export default function Home() {
         {/* Below-fold sections load dynamically */}
         <section aria-labelledby="fog-heading" className="w-full">
           <Fog />
+        </section>
+        
+        {/* ✅ ADDED: Problem Section (The Entropy Field) */}
+        <section aria-labelledby="problem-heading" className="w-full">
+          <ProblemSection />
         </section>
         
         <section aria-labelledby="trinity-heading" className="w-full">
@@ -64,7 +76,7 @@ export default function Home() {
           <SocialProof />
         </section>
 
-        {/* Footer is usually a semantic tag itself, but if it's a component, a wrapper is fine */}
+        {/* Footer */}
         <div className="w-full"> 
           <Footer />
         </div>
