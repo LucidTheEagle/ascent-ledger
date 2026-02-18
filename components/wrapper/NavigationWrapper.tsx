@@ -22,6 +22,7 @@ export function NavigationWrapper() {
     "/recovery-checkin",
     "/token-payday",
     "/tokens",
+    "/auth/reset-password",
   ];
 
   // Check if current path starts with any of the hidden paths
