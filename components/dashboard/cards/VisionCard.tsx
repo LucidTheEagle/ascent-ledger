@@ -1,7 +1,7 @@
 // ============================================
 // components/dashboard/cards/VisionCard.tsx
 // VISION CARD: Displays active vision with "Altitude to Summit" progress
-// Sprint 4 - Checkpoint 6
+// UPDATED: CP17 - Touch target compliance on Edit link (min 44px)
 // ============================================
 
 import { Sparkles, Mountain, AlertTriangle } from 'lucide-react';
@@ -16,7 +16,7 @@ interface VisionCardProps {
     antiGoal: string;
   } | null;
   totalLogsCount: number;
-  visionHorizonWeeks?: number; // Default 78 weeks (18 months)
+  visionHorizonWeeks?: number;
 }
 
 export function VisionCard({
@@ -25,7 +25,7 @@ export function VisionCard({
   visionHorizonWeeks = 78,
 }: VisionCardProps) {
   // ============================================
-  // EMPTY STATE: No Vision Yet
+  // EMPTY STATE
   // ============================================
   if (!vision) {
     return (
@@ -40,9 +40,7 @@ export function VisionCard({
               <Mountain className="w-8 h-8 text-blue-400" />
             </div>
             <div>
-              <p className="text-gray-300 text-lg font-medium">
-                No Vision Yet
-              </p>
+              <p className="text-gray-300 text-lg font-medium">No Vision Yet</p>
               <p className="text-gray-500 text-sm mt-1">
                 Define your 18-month summit to begin your ascent.
               </p>
@@ -50,6 +48,7 @@ export function VisionCard({
             <Link
               href="/vision-canvas"
               className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg font-semibold transition-all min-h-[44px] flex items-center justify-center"
+              aria-label="Create your vision"
             >
               Create Vision →
             </Link>
@@ -60,14 +59,13 @@ export function VisionCard({
   }
 
   // ============================================
-  // CALCULATE ALTITUDE PROGRESS
+  // ALTITUDE PROGRESS
   // ============================================
   const altitudePercentage = Math.min(
     Math.round((totalLogsCount / visionHorizonWeeks) * 100),
     100
   );
 
-  // Visual: Progress bar color based on altitude
   const getProgressColor = (percentage: number) => {
     if (percentage >= 75) return 'from-green-500 to-emerald-500';
     if (percentage >= 50) return 'from-blue-500 to-cyan-500';
@@ -78,7 +76,7 @@ export function VisionCard({
   const progressColor = getProgressColor(altitudePercentage);
 
   // ============================================
-  // ACTIVE VISION DISPLAY
+  // ACTIVE STATE
   // ============================================
   return (
     <>
@@ -86,9 +84,12 @@ export function VisionCard({
         icon={<Sparkles className="w-5 h-5" />}
         title="Your Vision"
         action={
+          // CP17: min-h-[44px] + padding for touch compliance
+          // inline-flex + items-center centres the text vertically
           <Link
             href="/vision-canvas"
-            className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+            className="inline-flex items-center min-h-[44px] px-3 text-sm text-blue-400 hover:text-blue-300 transition-colors rounded-lg hover:bg-blue-400/10"
+            aria-label="Edit your vision"
           >
             Edit →
           </Link>
@@ -96,8 +97,8 @@ export function VisionCard({
       />
       <BentoCardContent>
         <div className="space-y-6">
-          
-          {/* Vision Statement - "The Heaven" */}
+
+          {/* Vision Statement */}
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">
               The Summit
@@ -107,11 +108,11 @@ export function VisionCard({
             </p>
           </div>
 
-          {/* Altitude Progress Bar */}
+          {/* Altitude Progress */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Mountain className="w-4 h-4 text-blue-400" />
+                <Mountain className="w-4 h-4 text-blue-400" aria-hidden="true" />
                 <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide">
                   Altitude to Summit
                 </p>
@@ -121,35 +122,38 @@ export function VisionCard({
               </p>
             </div>
 
-            {/* Progress Bar Container */}
             <div className="relative w-full h-3 bg-white/5 rounded-full overflow-hidden border border-white/10">
-              {/* Progress Bar Fill */}
               <div
                 className={`absolute top-0 left-0 h-full bg-gradient-to-r ${progressColor} transition-all duration-500 ease-out`}
                 style={{ width: `${altitudePercentage}%` }}
+                role="progressbar"
+                aria-valuenow={altitudePercentage}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`Vision progress: ${altitudePercentage}%`}
               >
-                {/* Shimmer Effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
               </div>
             </div>
 
-            {/* Progress Label */}
             <p className="text-xs text-gray-500 mt-1">
-              {altitudePercentage}% of vision horizon • {visionHorizonWeeks - totalLogsCount} weeks remaining
+              {altitudePercentage}% of vision horizon •{' '}
+              {visionHorizonWeeks - totalLogsCount} weeks remaining
             </p>
           </div>
 
-          {/* Anti-Goal - "The Hell" (Subtle Reminder) */}
+          {/* Anti-Goal */}
           <div className="pt-4 border-t border-white/10">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-500/60 shrink-0 mt-0.5" />
+              <AlertTriangle
+                className="w-4 h-4 text-amber-500/60 shrink-0 mt-0.5"
+                aria-hidden="true"
+              />
               <div>
                 <p className="text-xs text-amber-500/60 uppercase tracking-wide mb-1">
                   Escaping From
                 </p>
-                <p className="text-sm text-gray-400 italic">
-                  {vision.antiGoal}
-                </p>
+                <p className="text-sm text-gray-400 italic">{vision.antiGoal}</p>
               </div>
             </div>
           </div>

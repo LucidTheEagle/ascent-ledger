@@ -112,6 +112,9 @@
 
   html {
     scroll-behavior: smooth;
+    /* FIX CP18: overflow-x on html clips horizontal overflow correctly
+       without making html/body a scroll container (which breaks
+       mouse-wheel scrolling when overflow-x is set on body) */
     overflow-x: hidden;
     -webkit-text-size-adjust: 100%;
   }
@@ -120,7 +123,9 @@
     @apply bg-ascent-black text-ascent-white antialiased;
     font-family: var(--font-inter, system-ui, sans-serif);
     line-height: 1.6;
-    overflow-x: hidden;
+    /* REMOVED: overflow-x: hidden from body — caused scroll wheel to stop
+       working unless the user grabbed the scrollbar directly.
+       Setting it on html above is the correct fix. */
     overscroll-behavior-y: none;
     -webkit-overflow-scrolling: touch;
   }
