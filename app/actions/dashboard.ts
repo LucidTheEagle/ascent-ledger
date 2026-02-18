@@ -12,6 +12,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentWeekStartDate, getAscentWeek } from '@/lib/utils/week-calculator';
 import { getStreakData } from '@/lib/services/streak-service';
 import { getTokenStats } from '@/lib/services/token-service';
+import { checkTransitionEligibility } from '@/lib/services/transition-service';
 import { detectAllPatterns, type PatternDetectionResult } from '@/lib/graph/patterns';
 
 // ============================================
@@ -151,7 +152,10 @@ export interface RecoveryTrackDashboardData {
     isEligible: boolean;
     weeksStable: number;
     currentOxygenLevel: number;
+    daysInRecovery: number;
+    has14DaysPassed: boolean;
     message: string;
+    blockers: string[];
   };
 }
 
@@ -476,10 +480,7 @@ async function getRecoveryDashboardData(
   const tokenStats = await getTokenStats(userProfile.id);
 
   // Check transition eligibility
-  const transitionEligibility = await checkTransitionEligibility(
-    userProfile.id,
-    protocol?.id || null
-  );
+  const transitionEligibility = await checkTransitionEligibility(userProfile.id);
 
   return {
     mode: 'RECOVERY',
@@ -505,66 +506,5 @@ async function getRecoveryDashboardData(
     streakData,
     tokenStats,
     transitionEligibility,
-  };
-}
-
-// ============================================
-// HELPER: TRANSITION ELIGIBILITY
-// ============================================
-
-async function checkTransitionEligibility(
-  userId: string,
-  protocolId: string | null
-): Promise<{
-  isEligible: boolean;
-  weeksStable: number;
-  currentOxygenLevel: number;
-  message: string;
-}> {
-  
-  if (!protocolId) {
-    return {
-      isEligible: false,
-      weeksStable: 0,
-      currentOxygenLevel: 0,
-      message: 'No active protocol',
-    };
-  }
-
-  // Get recent check-ins with oxygen level 6+
-  const recentStableCheckins = await prisma.recoveryCheckin.findMany({
-    where: {
-      userId,
-      protocolId,
-      oxygenLevelCurrent: {
-        gte: 6,
-      },
-    },
-    orderBy: {
-      weekOf: 'desc',
-    },
-    take: 3,
-    select: {
-      oxygenLevelCurrent: true,
-    },
-  });
-
-  const weeksStable = recentStableCheckins.length;
-  const currentOxygenLevel = recentStableCheckins[0]?.oxygenLevelCurrent || 0;
-  const isEligible = weeksStable >= 3;
-
-  let message = '';
-  if (isEligible) {
-    message = `You've maintained oxygen levels above 6 for ${weeksStable} consecutive weeks. You're ready to transition to Vision Track and build your future.`;
-  } else {
-    const weeksNeeded = 3 - weeksStable;
-    message = `Continue recovery. You need ${weeksNeeded} more week(s) at oxygen level 6+ to transition.`;
-  }
-
-  return {
-    isEligible,
-    weeksStable,
-    currentOxygenLevel,
-    message,
   };
 }
