@@ -1,6 +1,7 @@
 // ============================================
 // app/log/fog-check/[logId]/page.tsx
 // THE ANTICIPATION: Meteor loading → Fog Check generation → Display
+// FIX: Removed userId prop (not in FogCheckLoaderProps, auth handled server-side)
 // ============================================
 
 import { redirect } from 'next/navigation';
@@ -15,11 +16,11 @@ interface PageProps {
 
 export default async function FogCheckPage({ params }: PageProps) {
   const { logId } = await params;
-  
+
   // Verify authentication
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
-  
+
   if (error || !user) {
     redirect('/login');
   }
@@ -50,9 +51,13 @@ export default async function FogCheckPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-ascent-black">
-      <FogCheckLoader 
+      {/* 
+        userId removed — FogCheckLoader calls /api/fog-check/generate
+        which authenticates via Supabase server session directly.
+        Passing userId as a prop was redundant and caused TS2322.
+      */}
+      <FogCheckLoader
         logId={logId}
-        userId={user.id}
         existingFogCheck={existingFogCheck}
       />
     </div>
