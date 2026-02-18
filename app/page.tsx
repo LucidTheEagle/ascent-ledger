@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { Hero } from '@/components/landing/sections/Hero';
+import { SectionTransition } from '@/components/landing/SectionTransition';
 
 // CRITICAL: Hero loads instantly (Above the fold)
 // Below-fold sections use next/dynamic with skeleton placeholders
@@ -22,7 +23,6 @@ const ProblemSection = dynamic(
   }
 );
 
-// ✅ NEW: Checkpoint 11
 const SolutionSection = dynamic(
   () => import('@/components/landing/sections/SolutionSection').then(mod => ({ default: mod.SolutionSection })),
   {
@@ -58,39 +58,57 @@ const Footer = dynamic(
 export default function Home() {
   return (
     <>
-      <main className="flex min-h-screen flex-col items-center justify-between bg-ascent-black overflow-x-hidden">
+      <main className="flex min-h-screen flex-col items-center justify-between bg-ascent-black overflow-x-hidden scroll-smooth">
         
-        {/* Hero loads instantly (Above the fold) */}
+        {/* HERO - Above the fold, loads instantly */}
         <section aria-labelledby="hero-heading" className="w-full">
           <Hero />
         </section>
         
-        {/* Fog Section (Diagnostic Cards) */}
+        {/* Transition: Hero (black) → Fog (obsidian) */}
+        <SectionTransition type="black-to-obsidian" />
+        
+        {/* FOG - System Diagnostic Cards */}
         <section aria-labelledby="fog-heading" className="w-full">
           <Fog />
         </section>
         
-        {/* Problem Section (The Entropy Field) */}
+        {/* Transition: Fog (obsidian) → Problem (black) */}
+        <SectionTransition type="obsidian-to-black" />
+        
+        {/* PROBLEM - The Entropy Field */}
         <section aria-labelledby="problem-heading" className="w-full">
           <ProblemSection />
         </section>
 
-        {/* Solution Section (The Vector Alignment) */}
+        {/* Transition: Problem → Solution (both black, just spacing) */}
+        <SectionTransition type="black-to-black" />
+
+        {/* SOLUTION - The Vector Alignment */}
         <section aria-labelledby="solution-heading" className="w-full">
           <SolutionSection />
         </section>
+
+        {/* Transition: Solution (black) → Trinity (Aurora bg) */}
+        <SectionTransition type="black-to-obsidian" />
         
-        {/* Trinity (Product Features) */}
+        {/* TRINITY - Product Features */}
         <section aria-labelledby="trinity-heading" className="w-full">
           <Trinity />
         </section>
+
+        {/* Transition: Trinity (Aurora) → Social Proof (black) */}
+        <SectionTransition type="aurora-to-black" />
         
-        {/* Social Proof (The Roster) */}
+        {/* SOCIAL PROOF - The Roster */}
         <section aria-labelledby="social-proof-heading" className="w-full">
           <SocialProof />
         </section>
 
-        {/* Footer */}
+        {/* Transition: Social Proof → Footer (both black) */}
+        <SectionTransition type="black-to-black-footer" />
+
+        {/* FOOTER - The Landing Pad */}
         <div className="w-full"> 
           <Footer />
         </div>
