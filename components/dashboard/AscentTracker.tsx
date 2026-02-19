@@ -8,6 +8,7 @@
 import { motion } from 'framer-motion';
 import { Mountain } from 'lucide-react';
 import Link from 'next/link';
+import { useReducedMotion, getStaggerDelay } from '@/hooks/useReducedMotion';
 
 // ============================================
 // TYPES
@@ -89,7 +90,8 @@ function getWeekNumber(logDate: Date, userCreatedAt: Date): number {
 // ============================================
 
 export function AscentTracker({ logs, currentStreak, userCreatedAt }: AscentTrackerProps) {
-  
+  const prefersReducedMotion = useReducedMotion();
+
   // Empty state
   if (logs.length === 0) {
     return (
@@ -152,7 +154,7 @@ export function AscentTracker({ logs, currentStreak, userCreatedAt }: AscentTrac
               animate={{ opacity: 1, y: 0 }}
               transition={{
                 duration: 0.4,
-                delay: index * 0.1,
+                delay: getStaggerDelay(index, prefersReducedMotion),
                 ease: 'easeOut',
               }}
               className="relative"
@@ -242,7 +244,7 @@ export function AscentTracker({ logs, currentStreak, userCreatedAt }: AscentTrac
                       animate={{ height: '100%' }}
                       transition={{
                         duration: 0.5,
-                        delay: index * 0.1 + 0.2,
+                        delay: getStaggerDelay(index, prefersReducedMotion) + 0.2,
                       }}
                       className="w-full bg-gradient-to-b from-orange-400 to-red-500 relative"
                     >
@@ -263,7 +265,7 @@ export function AscentTracker({ logs, currentStreak, userCreatedAt }: AscentTrac
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: logs.length * 0.1 + 0.3 }}
+        transition={{ delay: getStaggerDelay(logs.length, prefersReducedMotion) + 0.3 }}
         className="flex items-center gap-4 mt-2 opacity-40 hover:opacity-100 transition-opacity"
       >
         <div className="flex flex-col items-center w-20 shrink-0">
