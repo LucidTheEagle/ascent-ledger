@@ -1,7 +1,8 @@
 // ============================================
 // app/dashboard/page.tsx
 // DASHBOARD: User's command center with Bento Grid layout
-// UPDATED: Checkpoint 10 - Extracted header to DashboardHeader component
+// CP24: Each card wrapped in ErrorBoundary (cardMode)
+//       One card crash cannot take down the whole dashboard
 // ============================================
 
 import { getDashboardData } from '@/app/actions/dashboard';
@@ -11,6 +12,7 @@ import { VisionCard } from '@/components/dashboard/cards/VisionCard';
 import { ThisWeekCard } from '@/components/dashboard/cards/ThisWeekCard';
 import { FogForecastCard } from '@/components/dashboard/cards/FogForecastCard';
 import { AscentTrackerCard } from '@/components/dashboard/cards/AscentTrackerCard';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import {
   BentoGrid,
   BentoGridItem,
@@ -26,7 +28,11 @@ export default async function DashboardPage() {
   // RECOVERY MODE: RENDER RECOVERY DASHBOARD
   // ============================================
   if (dashboardData.mode === 'RECOVERY') {
-    return <RecoveryDashboard data={dashboardData} />;
+    return (
+      <ErrorBoundary>
+        <RecoveryDashboard data={dashboardData} />
+      </ErrorBoundary>
+    );
   }
 
   // ============================================
@@ -47,69 +53,71 @@ export default async function DashboardPage() {
   // RENDER VISION TRACK DASHBOARD
   // ============================================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        
-        {/* ============================================
-            HEADER (Now extracted to component)
-        ============================================ */}
-        <DashboardHeader
-          title={`Clear Sky${user.fullName ? `, ${user.fullName.split(' ')[0]}` : ''}.`}
-          subtitle={`Week ${currentWeek} of your ascent`}
-          tokenBalance={user.tokenBalance}
-          currentStreak={streakData.currentStreak}
-          mode='ASCENT'
-        />
-
-        {/* ============================================
-            BENTO GRID LAYOUT
-        ============================================ */}
-        <BentoGrid>
-          
-          {/* ============================================
-              VISION CARD (Full Width)
-          ============================================ */}
-          <BentoGridItem colSpan={3}>
-            <VisionCard
-              vision={vision}
-              totalLogsCount={stats.totalLogsCount}
-              visionHorizonWeeks={78}
-            />
-          </BentoGridItem>
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-4 md:p-8">
+        <div className="max-w-7xl mx-auto space-y-8">
 
           {/* ============================================
-              THIS WEEK'S ALTITUDE CARD (2 columns)
+              HEADER
           ============================================ */}
-          <BentoGridItem colSpan={2}>
-            <ThisWeekCard
-              thisWeeksLog={thisWeeksLog}
-              currentWeek={currentWeek}
-            />
-          </BentoGridItem>
+          <DashboardHeader
+            title={`Clear Sky${user.fullName ? `, ${user.fullName.split(' ')[0]}` : ''}.`}
+            subtitle={`Week ${currentWeek} of your ascent`}
+            tokenBalance={user.tokenBalance}
+            currentStreak={streakData.currentStreak}
+            mode="ASCENT"
+          />
 
           {/* ============================================
-              FOG FORECAST CARD (1 column)
+              BENTO GRID LAYOUT
           ============================================ */}
-          <BentoGridItem colSpan={1}>
-            <FogForecastCard
-              patterns={dashboardData.fogForecast}
-              isStreakBroken={streakData.currentStreak === 0 && stats.totalLogsCount > 0}
-            />
-          </BentoGridItem>
+          <BentoGrid>
 
-          {/* ============================================
-              ASCENT TRACKER (Full Width)
-          ============================================ */}
-          <BentoGridItem colSpan={3}>
-            <AscentTrackerCard
-              logs={recentLogs}
-              currentStreak={streakData.currentStreak}
-              userCreatedAt={user.createdAt}
-            />
-          </BentoGridItem>
+            {/* VISION CARD — Full Width */}
+            <BentoGridItem colSpan={3}>
+              <ErrorBoundary cardMode cardTitle="Vision">
+                <VisionCard
+                  vision={vision}
+                  totalLogsCount={stats.totalLogsCount}
+                  visionHorizonWeeks={78}
+                />
+              </ErrorBoundary>
+            </BentoGridItem>
 
-        </BentoGrid>
+            {/* THIS WEEK'S ALTITUDE — 2 cols */}
+            <BentoGridItem colSpan={2}>
+              <ErrorBoundary cardMode cardTitle="This Week">
+                <ThisWeekCard
+                  thisWeeksLog={thisWeeksLog}
+                  currentWeek={currentWeek}
+                />
+              </ErrorBoundary>
+            </BentoGridItem>
+
+            {/* FOG FORECAST — 1 col */}
+            <BentoGridItem colSpan={1}>
+              <ErrorBoundary cardMode cardTitle="Fog Forecast">
+                <FogForecastCard
+                  patterns={dashboardData.fogForecast}
+                  isStreakBroken={streakData.currentStreak === 0 && stats.totalLogsCount > 0}
+                />
+              </ErrorBoundary>
+            </BentoGridItem>
+
+            {/* ASCENT TRACKER — Full Width */}
+            <BentoGridItem colSpan={3}>
+              <ErrorBoundary cardMode cardTitle="Ascent Tracker">
+                <AscentTrackerCard
+                  logs={recentLogs}
+                  currentStreak={streakData.currentStreak}
+                  userCreatedAt={user.createdAt}
+                />
+              </ErrorBoundary>
+            </BentoGridItem>
+
+          </BentoGrid>
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 }
