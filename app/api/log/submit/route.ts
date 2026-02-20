@@ -10,8 +10,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 import { getCurrentWeekStartDate, getAscentWeek } from '@/lib/utils/week-calculator';
+
+/** Transaction client type derived from prisma (avoids relying on @prisma/client Prisma namespace at build) */
+type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 import { generateLogEmbedding, embeddingToString } from '@/lib/ai/embeddings';
 import { updateStreakOnLog } from '@/lib/services/streak-service';
 import { rateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/upstash/rate-limiter'
@@ -122,7 +124,7 @@ export async function POST(req: NextRequest) {
     // ============================================
     // THE SOUL: SAVE THE LOG + AWARD TOKENS
     // ============================================
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await prisma.$transaction(async (tx: TxClient) => {
       // Create strategic log
       const strategicLog = await tx.strategicLog.create({
         data: {
