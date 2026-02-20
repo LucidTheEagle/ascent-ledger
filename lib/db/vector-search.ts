@@ -18,10 +18,13 @@ export interface SimilarLog {
   similarity: number; // 0-1 score (higher = more similar)
 }
 
+// Derive the row type from Prisma's return value
+type StrategicLogRow = Awaited<ReturnType<typeof prisma.strategicLog.findMany>>[number];
+
 /**
  * Find semantically similar past logs for a user
  * Uses cosine similarity to compare embedding vectors
- * 
+ *
  * @param userId - The user's ID
  * @param currentEmbedding - The embedding of the current log
  * @param options - Search configuration
@@ -61,7 +64,7 @@ export async function findSimilarLogs(
 
     // Calculate similarity scores
     const logsWithSimilarity: SimilarLog[] = pastLogs
-      .map((log: typeof pastLogs[number]) => {
+      .map((log: StrategicLogRow): SimilarLog | null => {
         if (!log.embedding) return null;
 
         const pastEmbedding = stringToEmbedding(log.embedding);
@@ -78,10 +81,10 @@ export async function findSimilarLogs(
           similarity,
         };
       })
-      .filter((log): log is SimilarLog => log !== null)
-      .filter(log => log.similarity >= minSimilarity) // Filter by threshold
-      .sort((a, b) => b.similarity - a.similarity) // Sort by similarity (highest first)
-      .slice(0, limit); // Take top N
+      .filter((log: SimilarLog | null): log is SimilarLog => log !== null)
+      .filter((log: SimilarLog) => log.similarity >= minSimilarity)
+      .sort((a: SimilarLog, b: SimilarLog) => b.similarity - a.similarity)
+      .slice(0, limit);
 
     return logsWithSimilarity;
 
@@ -94,7 +97,7 @@ export async function findSimilarLogs(
 /**
  * Find logs from a specific time period
  * Useful for "You said this 4 weeks ago..." type insights
- * 
+ *
  * @param userId - The user's ID
  * @param weeksAgo - How many weeks back to look
  * @returns The log from that week (if exists)
@@ -106,7 +109,7 @@ export async function findLogFromWeeksAgo(
   try {
     const targetDate = new Date();
     targetDate.setDate(targetDate.getDate() - (weeksAgo * 7));
-    
+
     // Get Monday of that week
     const dayOfWeek = targetDate.getDay();
     const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
@@ -142,7 +145,7 @@ export async function findLogFromWeeksAgo(
 /**
  * Get summary statistics for context
  * Used in Fog Check generation to understand patterns
- * 
+ *
  * @param userId - The user's ID
  * @returns Statistics about user's logging history
  */
@@ -155,8 +158,8 @@ export async function getLogStatistics(userId: string) {
     });
 
     const totalLogs = logs.length;
-    const survivalModeCount = logs.filter(l => l.isSurvivalMode).length;
-    const noLeverageCount = logs.filter(l => l.hadNoLeverage).length;
+    const survivalModeCount = logs.filter((l: StrategicLogRow) => l.isSurvivalMode).length;
+    const noLeverageCount = logs.filter((l: StrategicLogRow) => l.hadNoLeverage).length;
 
     return {
       totalLogs,
