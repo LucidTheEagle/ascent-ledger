@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { getCurrentWeekStartDate, getAscentWeek } from '@/lib/utils/week-calculator';
 import { generateLogEmbedding, embeddingToString } from '@/lib/ai/embeddings';
 import { updateStreakOnLog } from '@/lib/services/streak-service';
@@ -121,7 +122,7 @@ export async function POST(req: NextRequest) {
     // ============================================
     // THE SOUL: SAVE THE LOG + AWARD TOKENS
     // ============================================
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Create strategic log
       const strategicLog = await tx.strategicLog.create({
         data: {
