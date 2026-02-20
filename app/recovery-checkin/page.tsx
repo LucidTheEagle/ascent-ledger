@@ -54,13 +54,8 @@ function RecoveryCheckinContent() {
 
       const result = await response.json();
 
-      // Show token reward
+      // Show token reward (TokenPayday handles redirect via redirectUrl)
       setShowTokenReward(true);
-
-      // After animation, redirect to dashboard
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 3000);
     } catch (error: unknown) {
       console.error("Error saving check-in:", error);
       let message = "Failed to save check-in. Please try again.";
@@ -76,12 +71,10 @@ function RecoveryCheckinContent() {
     return (
       <TokenPayday
         amount={50}
-        description="Recovery Check-in"
-        icon="🛡️"
-        subtitle="You showed up. That's progress."
-        tokensAwarded={0}
-        newBalance={0}
-        logId={""}
+        newBalance={50}
+        reason="RECOVERY_CHECKIN"
+        redirectUrl="/dashboard"
+        duration={3000}
       />
     );
   }

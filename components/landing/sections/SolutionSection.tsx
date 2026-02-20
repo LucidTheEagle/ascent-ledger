@@ -36,7 +36,7 @@ const NOISE_ITEMS: NoiseItem[] = [
   { id: 8,  text: "Strategic Decision",     isSignal: true,  gridCol: 3, gridRow: 3 },
 ];
 
-const PHASE_TIMING: Record<AlignmentPhase, { label: string; description: string; icon: ElementType; color: string }> = {
+const PHASE_TIMING = {
   capture: {
     label: "01 — CAPTURE",
     description: "System catches all inputs. Nothing escapes.",
@@ -55,7 +55,7 @@ const PHASE_TIMING: Record<AlignmentPhase, { label: string; description: string;
     icon: Compass,
     color: "text-ascent-green",
   },
-};
+} as const satisfies Record<AlignmentPhase, { label: string; description: string; icon: ElementType; color: string }>;
 
 // ─── ANIMATED GRID ITEM ───────────────────────────────────────────────────────
 
