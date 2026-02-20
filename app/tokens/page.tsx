@@ -9,6 +9,8 @@ import { createClient } from '@/lib/supabase/server';
 import { getTokenBalance, getTokenHistory } from '@/lib/services/token-service';
 import { TokenHistory } from '@/components/tokens/TokenHistory';
 
+type TokenTransactionItem = Awaited<ReturnType<typeof getTokenHistory>>[number];
+
 export const metadata = {
   title: 'Token History | Ascent Ledger',
   description: 'Your complete token transaction history',
@@ -84,7 +86,7 @@ export default async function TokenHistoryPage() {
           currentBalance={balanceData?.currentBalance ?? 0}
           totalEarned={balanceData?.totalEarned ?? 0}
           totalSpent={balanceData?.totalSpent ?? 0}
-          transactions={(transactions ?? []).map(txn => ({
+          transactions={(transactions ?? []).map((txn: TokenTransactionItem) => ({
             ...txn,
             description: txn.description ?? ""
           }))}
