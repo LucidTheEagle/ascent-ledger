@@ -7,6 +7,10 @@ import { Eye, EyeOff, Loader2, Lock, CheckCircle, AlertCircle } from 'lucide-rea
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 
+// Force dynamic rendering — this page reads a live Supabase session
+// and must never be statically prerendered.
+export const dynamic = 'force-dynamic'
+
 // ─────────────────────────────────────────────────────────
 // PASSWORD STRENGTH (reusing same logic as sign-up)
 // ─────────────────────────────────────────────────────────
