@@ -11,6 +11,10 @@ import { Label } from "@/components/ui/label";
 import TokenPayday from "@/components/tokens/TokenPayday";
 import { ArrowLeft, Shield, Flame, Heart, DollarSign, AlertTriangle } from "lucide-react";
 
+// Force dynamic rendering — this page uses client-side state and
+// must never be statically prerendered.
+export const dynamic = "force-dynamic";
+
 type CrisisType = "TOXIC_ENV" | "BURNOUT" | "FINANCIAL" | "IMPOSTER";
 
 interface CrisisData {
@@ -88,9 +92,7 @@ export default function CrisisTriagePage() {
         throw new Error("Failed to create crisis protocol");
       }
 
-      const result = await response.json();
-
-      // Show token reward (TokenPayday handles redirect via redirectUrl)
+      // Result not needed — TokenPayday handles redirect via redirectUrl
       setShowTokenReward(true);
     } catch (error) {
       console.error("Error creating crisis protocol:", error);
