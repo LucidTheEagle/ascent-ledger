@@ -52,9 +52,7 @@ function RecoveryCheckinContent() {
         throw new Error(error.error || "Failed to save check-in");
       }
 
-      const result = await response.json();
-
-      // Show token reward (TokenPayday handles redirect via redirectUrl)
+      // Result not needed — TokenPayday handles redirect via redirectUrl
       setShowTokenReward(true);
     } catch (error: unknown) {
       console.error("Error saving check-in:", error);

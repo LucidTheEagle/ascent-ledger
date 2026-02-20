@@ -7,11 +7,14 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { initPostHog, posthog } from '@/lib/posthog/client';
 
-export function PostHogProvider({ children }: { children: React.ReactNode }) {
+// ─────────────────────────────────────────────────────────
+// INNER COMPONENT — uses useSearchParams(), must be inside Suspense
+// ─────────────────────────────────────────────────────────
+function PostHogPageTracker({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -34,4 +37,15 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
   }, [pathname, searchParams]);
 
   return <>{children}</>;
+}
+
+// ─────────────────────────────────────────────────────────
+// EXPORTED PROVIDER — Suspense boundary required for useSearchParams()
+// ─────────────────────────────────────────────────────────
+export function PostHogProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<>{children}</>}>
+      <PostHogPageTracker>{children}</PostHogPageTracker>
+    </Suspense>
+  );
 }
