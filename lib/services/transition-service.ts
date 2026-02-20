@@ -7,6 +7,9 @@
 import { prisma } from '@/lib/prisma';
 import { awardTokens } from '@/lib/services/token-service';
 
+/** Transaction client type derived from prisma (avoids implicit any on Vercel build) */
+type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
 interface TransitionEligibility {
   isEligible: boolean;
   weeksStable: number;
@@ -143,7 +146,7 @@ export async function transitionToVisionTrack(
       };
     }
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: TxClient) => {
       await tx.crisisProtocol.update({
         where: { id: protocolId },
         data: {

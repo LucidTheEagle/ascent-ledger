@@ -11,6 +11,9 @@ import prisma from '@/lib/prisma'
 import Groq from 'groq-sdk'
 import { rateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/upstash/rate-limiter'
 
+/** Transaction client type derived from prisma (avoids implicit any on Vercel build) */
+type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
+
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 })
@@ -158,7 +161,7 @@ export async function POST(request: NextRequest) {
     // ============================================
     // 6. SAVE TO DATABASE (Self-Healing Transaction)
     // ============================================
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: TxClient) => {
       
       // CRITICAL FIX: Ensure User exists in public.users table
       // This bridges the gap between Supabase Auth and Prisma
