@@ -90,13 +90,8 @@ export default function CrisisTriagePage() {
 
       const result = await response.json();
 
-      // Show token reward
+      // Show token reward (TokenPayday handles redirect via redirectUrl)
       setShowTokenReward(true);
-
-      // After token animation, redirect to recovery dashboard
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 3000);
     } catch (error) {
       console.error("Error creating crisis protocol:", error);
       alert("Failed to create protocol. Please try again.");
@@ -108,12 +103,10 @@ export default function CrisisTriagePage() {
     return (
       <TokenPayday
         amount={100}
-        description="Crisis Protocol Activated"
-        icon="🛡️"
-        subtitle="You just took the hardest step: asking for help."
-        tokensAwarded={0}
-        newBalance={0}
-        logId={""}
+        newBalance={100}
+        reason="Crisis Protocol Activated"
+        redirectUrl="/dashboard"
+        duration={3000}
       />
     );
   }
