@@ -1,17 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
-import { Mail, ArrowRight, RefreshCcw } from 'lucide-react'
+import { Mail, ArrowRight, RefreshCcw, Loader2 } from 'lucide-react'
 
-export default function VerifyEmailPage() {
+// ─────────────────────────────────────────────────────────
+// INNER COMPONENT — uses useSearchParams(), must be inside Suspense
+// ─────────────────────────────────────────────────────────
+function VerifyEmailContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
-  
+
   const [email, setEmail] = useState<string | null>(null)
   const [resending, setResending] = useState(false)
   const [resent, setResent] = useState(false)
@@ -20,7 +23,7 @@ export default function VerifyEmailPage() {
   useEffect(() => {
     // PRIORITY 1: Get email from URL params (most reliable for new signups)
     const emailFromUrl = searchParams.get('email')
-    
+
     if (emailFromUrl) {
       setEmail(emailFromUrl)
       return
@@ -39,10 +42,10 @@ export default function VerifyEmailPage() {
 
   const handleResend = async () => {
     if (!email) return
-    
+
     setResending(true)
     setError(null)
-    
+
     try {
       const { error: resendError } = await supabase.auth.resend({
         type: 'signup',
@@ -54,7 +57,6 @@ export default function VerifyEmailPage() {
       setResent(true)
       // Reset "resent" message after 10 seconds to allow another try
       setTimeout(() => setResent(false), 10000)
-      
     } catch (err: unknown) {
       let errorMsg = 'Failed to resend email.'
       if (
@@ -104,22 +106,13 @@ export default function VerifyEmailPage() {
           <p className="text-sm text-gray-500 max-w-xs mx-auto">
             Click the link in the email to activate your account and access the cockpit.
           </p>
-          
+
           {/* Email Provider Quick Links */}
           {email && (
             <div className="pt-4 flex flex-wrap justify-center gap-3">
-              <EmailProviderLink 
-                name="Gmail" 
-                url="https://mail.google.com" 
-              />
-              <EmailProviderLink 
-                name="Outlook" 
-                url="https://outlook.live.com" 
-              />
-              <EmailProviderLink 
-                name="Yahoo" 
-                url="https://mail.yahoo.com" 
-              />
+              <EmailProviderLink name="Gmail" url="https://mail.google.com" />
+              <EmailProviderLink name="Outlook" url="https://outlook.live.com" />
+              <EmailProviderLink name="Yahoo" url="https://mail.yahoo.com" />
             </div>
           )}
         </div>
@@ -134,7 +127,7 @@ export default function VerifyEmailPage() {
         {/* Resend Button */}
         <div className="space-y-3 pt-4">
           {resent ? (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="p-3 rounded-lg bg-green-500/10 border border-green-500/50 text-green-400 text-sm"
@@ -148,12 +141,12 @@ export default function VerifyEmailPage() {
               variant="outline"
               className="w-full h-12 border-gray-700 text-white hover:bg-gray-900 gap-2"
             >
-               {resending ? (
-                 <RefreshCcw className="w-4 h-4 animate-spin" />
-               ) : (
-                 <Mail className="w-4 h-4" />
-               )}
-               {resending ? 'Sending...' : "Resend Verification Email"}
+              {resending ? (
+                <RefreshCcw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Mail className="w-4 h-4" />
+              )}
+              {resending ? 'Sending...' : 'Resend Verification Email'}
             </Button>
           )}
 
@@ -175,7 +168,7 @@ export default function VerifyEmailPage() {
   )
 }
 
-function EmailProviderLink({ name, url }: { name: string, url: string }) {
+function EmailProviderLink({ name, url }: { name: string; url: string }) {
   return (
     <a
       href={url}
@@ -186,5 +179,22 @@ function EmailProviderLink({ name, url }: { name: string, url: string }) {
       Open {name}
       <ArrowRight className="w-3 h-3 opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all" />
     </a>
+  )
+}
+
+// ─────────────────────────────────────────────────────────
+// PAGE WRAPPER — Suspense boundary required for useSearchParams()
+// ─────────────────────────────────────────────────────────
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-ascent-black flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-ascent-blue" />
+        </div>
+      }
+    >
+      <VerifyEmailContent />
+    </Suspense>
   )
 }
