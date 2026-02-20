@@ -45,10 +45,11 @@ export default async function TokenPaydayPage({
   // ============================================
   return (
     <TokenPayday
-      tokensAwarded={tokensAwarded}
+      amount={tokensAwarded}
       newBalance={newBalance}
-      logId={logId}
-      duration={2000} // 2 seconds
+      reason="WEEKLY_LOG"
+      redirectUrl={`/log/fog-check/${logId}`}
+      duration={2000}
     />
   );
 }
