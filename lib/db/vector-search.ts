@@ -61,7 +61,7 @@ export async function findSimilarLogs(
 
     // Calculate similarity scores
     const logsWithSimilarity: SimilarLog[] = pastLogs
-      .map(log => {
+      .map((log: typeof pastLogs[number]) => {
         if (!log.embedding) return null;
 
         const pastEmbedding = stringToEmbedding(log.embedding);
